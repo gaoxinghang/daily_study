@@ -24,6 +24,7 @@ let current_filter = "all";
 let toast_timeout;
 let last_signature = "";
 let confirm_callback = null;
+let current_view = location.hash === "#history" ? "history" : "today";
 
 const category_classes = {
   阅读: "",
@@ -422,7 +423,7 @@ function render() {
     render_tasks(now);
     last_signature = signature;
   }
-  if (find("#history-dialog")?.open) {
+  if (current_view === "history") {
     render_history(now);
   }
   const stats = get_stats(state.tasks, now);
@@ -455,10 +456,50 @@ function render() {
   render_timer(now);
 }
 
+function switch_view(view_name) {
+  /** 切换今日计划与学习足迹页面视图。 */
+  current_view = view_name === "history" ? "history" : "today";
+  const is_history = current_view === "history";
+
+  const view_today = find("#view-today");
+  const view_history = find("#view-history");
+  if (view_today) {
+    view_today.classList.toggle("active", !is_history);
+    view_today.hidden = is_history;
+  }
+  if (view_history) {
+    view_history.classList.toggle("active", is_history);
+    view_history.hidden = !is_history;
+  }
+
+  const breadcrumb = find("#breadcrumb-current");
+  if (breadcrumb) {
+    breadcrumb.textContent = is_history ? "学习足迹" : "今日计划";
+  }
+
+  const nav_today = find("#nav-today");
+  const nav_history = find("#nav-history");
+  if (nav_today) {
+    nav_today.classList.toggle("active", !is_history);
+    nav_today.setAttribute("aria-current", !is_history ? "page" : "false");
+  }
+  if (nav_history) {
+    nav_history.classList.toggle("active", is_history);
+    nav_history.setAttribute("aria-current", is_history ? "page" : "false");
+  }
+
+  if (window.location.hash !== (is_history ? "#history" : "#today")) {
+    history.replaceState(null, "", is_history ? "#history" : "#today");
+  }
+
+  render();
+  window.scrollTo({ top: 0, behavior: "instant" });
+}
+
 function render_history(now = Date.now()) {
   /** 显示当前日期及最近归档日期的学习汇总与统计概览。 */
   const rows = [
-    { day: state.day, ...get_stats(state.tasks, now) },
+    { day: state.day, is_today: true, ...get_stats(state.tasks, now) },
     ...state.history
       .filter((entry) => entry.day !== state.day)
       .slice()
@@ -473,34 +514,58 @@ function render_history(now = Date.now()) {
   );
   const total_completed = rows.reduce((sum, row) => sum + row.completed, 0);
 
-  const summary_el = find("#history-summary");
-  if (summary_el) {
-    summary_el.innerHTML = `
-      <div class="history-metric">
-        <span>专注打卡</span>
-        <strong>${total_days} 天</strong>
-      </div>
-      <div class="history-metric">
-        <span>累计专注</span>
-        <strong>${total_minutes} 分钟</strong>
-      </div>
-      <div class="history-metric">
-        <span>累计完成</span>
-        <strong>${total_completed} 项</strong>
+  const days_el = find("#history-total-days");
+  const min_el = find("#history-total-minutes");
+  const comp_el = find("#history-total-completed");
+  const count_el = find("#history-entry-count");
+
+  if (days_el) days_el.textContent = total_days;
+  if (min_el) min_el.textContent = total_minutes;
+  if (comp_el) comp_el.textContent = total_completed;
+  if (count_el) count_el.textContent = rows.length;
+
+  const list_el = find("#history-list");
+  if (!list_el) return;
+
+  if (!rows.length) {
+    list_el.innerHTML = `
+      <div class="empty-state">${icon("leaf")}
+        <strong>还没有学习记录</strong>
+        <p>开始今天的第一个任务吧，积累的专注时间会在这里为你保留。</p>
       </div>`;
+    return;
   }
 
-  find("#history-list").innerHTML = rows
-    .map(
-      (row, index) => `
-    <div class="history-row">
-      <div><strong>${escape_html(row.day)}${index === 0 ? " · 今天" : ""}
-        </strong><span>${row.completed} / ${row.total} 项完成</span></div>
-      <p>累计专注 ${Math.floor(row.focus_ms / 60_000)} 分钟</p>
-      <div class="progress-track"><span style="width:
-        ${row.total ? (row.completed / row.total) * 100 : 0}%"></span></div>
-    </div>`,
-    )
+  list_el.innerHTML = rows
+    .map((row) => {
+      const is_today = Boolean(row.is_today);
+      const pct = row.total
+        ? Math.round((row.completed / row.total) * 100)
+        : 0;
+      const minutes = Math.floor(row.focus_ms / 60_000);
+      const day_label = escape_html(row.day);
+      return `
+        <article class="history-row ${is_today ? "today" : ""}">
+          <div class="history-date-cell">
+            <strong>${day_label}</strong>
+            ${is_today ? '<span class="history-badge">今天</span>' : ""}
+          </div>
+          <div class="history-stats-cell">
+            ${icon("check")}
+            <span>${row.completed} / ${row.total} 项完成</span>
+          </div>
+          <div class="history-focus-cell">
+            ${icon("clock")}
+            <span>专注 ${minutes} 分钟</span>
+          </div>
+          <div class="history-progress-cell">
+            <div class="progress-track" title="完成率 ${pct}%">
+              <span style="width: ${pct}%"></span>
+            </div>
+            <span class="history-progress-pct">${pct}%</span>
+          </div>
+        </article>`;
+    })
     .join("");
 }
 
@@ -583,6 +648,9 @@ function update_presets() {
 
 function toggle_zen_mode() {
   /** 切换沉浸专注模式。 */
+  if (current_view !== "today") {
+    switch_view("today");
+  }
   const active = document.body.classList.toggle("zen-mode");
   const zen_icon = find("#zen-icon");
   if (zen_icon) {
@@ -828,10 +896,23 @@ find("#reset-button").addEventListener("click", () => {
   );
 });
 
-find("#history-button").addEventListener("click", () => {
-  render();
-  render_history();
-  find("#history-dialog").showModal();
+find("#nav-today")?.addEventListener("click", (event) => {
+  event.preventDefault();
+  switch_view("today");
+});
+
+find("#nav-history")?.addEventListener("click", (event) => {
+  event.preventDefault();
+  switch_view("history");
+});
+
+find("#history-back-button")?.addEventListener("click", () => {
+  switch_view("today");
+});
+
+window.addEventListener("hashchange", () => {
+  const target_view = location.hash === "#history" ? "history" : "today";
+  if (target_view !== current_view) switch_view(target_view);
 });
 
 document.addEventListener("keydown", (event) => {
@@ -886,7 +967,7 @@ document.addEventListener("visibilitychange", () => {
 });
 
 apply_prefs();
-render();
+switch_view(current_view);
 save_state();
 if (load_warning) show_toast(load_warning);
 setInterval(render, 250);

@@ -125,6 +125,7 @@
         <a
           class="nav-item active"
           href="#today"
+          id="nav-today"
           aria-current="page"
           aria-label="今日计划"
         >
@@ -132,15 +133,16 @@
           <span>今日计划</span>
           <span class="nav-dot"></span>
         </a>
-        <button
+        <a
           class="nav-item"
-          id="history-button"
-          type="button"
+          href="#history"
+          id="nav-history"
           aria-label="学习足迹"
         >
           <svg class="icon"><use href="#icon-chart" /></svg>
           <span>学习足迹</span>
-        </button>
+          <span class="nav-dot"></span>
+        </a>
         <button
           class="nav-item"
           id="theme-toggle"
@@ -166,12 +168,12 @@
       </div>
     </aside>
 
-    <main id="today">
+    <main id="main-content">
       <header class="topbar">
         <div class="breadcrumb">
           <span>我的空间</span>
           <span class="breadcrumb-sep">/</span>
-          <strong>今日计划</strong>
+          <strong id="breadcrumb-current">今日计划</strong>
         </div>
         <div class="topbar-right">
           <div class="today-date">
@@ -181,6 +183,7 @@
         </div>
       </header>
 
+      <div id="view-today" class="page-view active">
       <section class="page-heading">
         <div>
           <div class="eyebrow">MAKE TIME FOR YOURSELF</div>
@@ -454,6 +457,79 @@
           </div>
         </section>
       </div>
+      </div>
+
+      <div id="view-history" class="page-view" hidden>
+        <section class="page-heading">
+          <div>
+            <div class="eyebrow">YOUR GROWTH JOURNEY</div>
+            <h1>每一份努力，都有迹可循<span>。</span></h1>
+            <p>最近 30 天的学习记录与专注汇总，见证每一次向前。</p>
+          </div>
+          <button class="button secondary" id="history-back-button" type="button">
+            <svg class="icon"><use href="#icon-arrow" style="transform: rotate(180deg);" /></svg>
+            <span>返回今日计划</span>
+          </button>
+        </section>
+
+        <section class="stats" aria-label="学习历程概览">
+          <div class="stat-card">
+            <span class="stat-icon sage">
+              <svg class="icon"><use href="#icon-calendar" /></svg>
+            </span>
+            <div class="stat-body">
+              <span class="stat-label">专注打卡</span>
+              <div class="stat-value">
+                <strong id="history-total-days">0</strong><span>天</span>
+              </div>
+            </div>
+            <span class="stat-caption">日拱一卒的坚持</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-icon sand">
+              <svg class="icon"><use href="#icon-clock" /></svg>
+            </span>
+            <div class="stat-body">
+              <span class="stat-label">累计专注时长</span>
+              <div class="stat-value">
+                <strong id="history-total-minutes">0</strong><span>分钟</span>
+              </div>
+            </div>
+            <span class="stat-caption">沉淀的时间价值</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-icon lavender">
+              <svg class="icon"><use href="#icon-check" /></svg>
+            </span>
+            <div class="stat-body">
+              <span class="stat-label">累计完成任务</span>
+              <div class="stat-value">
+                <strong id="history-total-completed">0</strong><span>项</span>
+              </div>
+            </div>
+            <span class="stat-caption">每一个达成的目标</span>
+          </div>
+        </section>
+
+        <section class="panel history-panel" aria-labelledby="history-heading">
+          <div class="panel-heading">
+            <div>
+              <h2 id="history-heading">
+                <svg class="icon"><use href="#icon-chart" /></svg>
+                学习足迹历程 <span id="history-entry-count">0</span>
+              </h2>
+              <p>按日归档每日专注投入与完成进度，数据保存在当前浏览器中。</p>
+            </div>
+          </div>
+          <div class="history-table-header">
+            <span class="col-date">记录日期</span>
+            <span class="col-stats">任务完成情况</span>
+            <span class="col-focus">专注时长</span>
+            <span class="col-progress">完成进度</span>
+          </div>
+          <div id="history-list" class="history-list"></div>
+        </section>
+      </div>
 
       <footer>
         <span>拾光 · 让每一份专注，都有回响</span>
@@ -545,22 +621,7 @@
       </form>
     </dialog>
 
-    <dialog id="history-dialog" aria-labelledby="history-title">
-      <div class="dialog-heading">
-        <div>
-          <span class="eyebrow">YOUR GROWTH JOURNEY</span>
-          <h2 id="history-title">每一份努力，都有迹可循</h2>
-        </div>
-        <button type="button" class="icon-button close-dialog" aria-label="关闭">
-          <svg class="icon"><use href="#icon-close" /></svg>
-        </button>
-      </div>
-      <p class="dialog-description">
-        最近 30 条学习记录，自动保存在当前浏览器中。
-      </p>
-      <div class="history-summary" id="history-summary"></div>
-      <div id="history-list" class="history-list"></div>
-    </dialog>
+
 
     <dialog id="confirm-dialog" aria-labelledby="confirm-title">
       <div class="dialog-heading">
