@@ -1,0 +1,26 @@
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# 依赖与构建产物
+node_modules/
+dist/
+coverage/
+
+# 本地环境配置（保留配置示例）
+.env
+.env.*
+!.env.example
+
+# 日志与临时文件
+*.log
+*.pid
+*.tmp
+*.swp
+*.swo
+
+# 浏览器测试产物
+.playwright-cli/
+playwright-report/
+test-results/
+.artifacts/

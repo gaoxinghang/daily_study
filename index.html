@@ -1,0 +1,428 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f6f7f2" />
+    <meta
+      name="description"
+      content="拾光，每天留一点时间给成长。安排学习计划，开启专注计时。"
+    />
+    <title>拾光 · 每日学习</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='12' fill='%232c5947'/%3E%3Cpath d='M12 28V13c9-3 18 2 14 10-3 5-8 1-6-3' fill='none' stroke='%23e7edbe' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E"
+    />
+    <link rel="stylesheet" href="styles.css" />
+    <script type="module" src="app.js"></script>
+  </head>
+  <body>
+    <svg
+      class="svg-library"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      <symbol id="icon-grid" viewBox="0 0 24 24">
+        <rect x="3" y="3" width="7" height="7" rx="2" />
+        <rect x="14" y="3" width="7" height="7" rx="2" />
+        <rect x="3" y="14" width="7" height="7" rx="2" />
+        <rect x="14" y="14" width="7" height="7" rx="2" />
+      </symbol>
+      <symbol id="icon-chart" viewBox="0 0 24 24">
+        <path d="M4 3v17h17M9 15v-4m5 4V6m5 9v-6" />
+      </symbol>
+      <symbol id="icon-clock" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="9" />
+        <path d="M12 7v5l3 2" />
+      </symbol>
+      <symbol id="icon-check" viewBox="0 0 24 24">
+        <path d="m5 12 4 4L19 6" />
+      </symbol>
+      <symbol id="icon-book" viewBox="0 0 24 24">
+        <path
+          d="M12 5v15M3 4c4-1 6 0 9 2 3-2 5-3 9-2v15c-4-1-6 0-9 2-3-2-5-3-9-2Z"
+        />
+      </symbol>
+      <symbol id="icon-plus" viewBox="0 0 24 24">
+        <path d="M12 5v14M5 12h14" />
+      </symbol>
+      <symbol id="icon-play" viewBox="0 0 24 24">
+        <path d="m9 5 11 7-11 7Z" />
+      </symbol>
+      <symbol id="icon-pause" viewBox="0 0 24 24">
+        <path d="M8 5v14M16 5v14" />
+      </symbol>
+      <symbol id="icon-reset" viewBox="0 0 24 24">
+        <path d="M3 10a9 9 0 1 1 1 7M3 4v6h6" />
+      </symbol>
+      <symbol id="icon-trash" viewBox="0 0 24 24">
+        <path d="M4 7h16M9 7V4h6v3M6 7l1 14h10l1-14M10 11v6m4-6v6" />
+      </symbol>
+      <symbol id="icon-arrow" viewBox="0 0 24 24">
+        <path d="M5 12h14m-6-6 6 6-6 6" />
+      </symbol>
+      <symbol id="icon-leaf" viewBox="0 0 24 24">
+        <path d="M5 19C-2 6 11 3 21 3c0 12-5 19-14 14M3 21 15 9" />
+      </symbol>
+      <symbol id="icon-calendar" viewBox="0 0 24 24">
+        <rect x="3" y="5" width="18" height="16" rx="3" />
+        <path d="M7 3v4m10-4v4M3 11h18m-13 4h2m4 0h2" />
+      </symbol>
+      <symbol id="icon-close" viewBox="0 0 24 24">
+        <path d="m6 6 12 12M6 18 18 6" />
+      </symbol>
+    </svg>
+
+    <aside class="sidebar">
+      <a class="brand" href="./" aria-label="拾光首页">
+        <span class="brand-mark">
+          <svg viewBox="0 0 40 40" aria-hidden="true">
+            <path d="M12 29V12c10-3 19 3 14 11-3 5-9 0-5-4" />
+            <circle cx="28" cy="10" r="2" />
+          </svg>
+        </span>
+        <span>拾光<small>DAILY GROWTH</small></span>
+      </a>
+      <p class="nav-label">我的空间</p>
+      <nav aria-label="主导航">
+        <a class="nav-item active" href="#today" aria-current="page">
+          <svg class="icon"><use href="#icon-grid" /></svg>
+          今日计划<span class="nav-dot"></span>
+        </a>
+        <button class="nav-item" id="history-button">
+          <svg class="icon"><use href="#icon-chart" /></svg>
+          学习足迹
+        </button>
+      </nav>
+      <div class="sidebar-note">
+        <svg class="icon"><use href="#icon-leaf" /></svg>
+        <p>慢慢来，<br />每一步都算数。</p>
+        <span>A LITTLE BETTER, EVERY DAY.</span>
+      </div>
+      <div class="sidebar-bottom">
+        <span class="avatar">拾</span>
+        <div>终身学习者<small>正在成为更好的自己</small></div>
+        <span class="online-dot" title="本地学习空间"></span>
+      </div>
+    </aside>
+
+    <main id="today">
+      <header class="topbar">
+        <div class="breadcrumb">
+          我的空间<span>/</span><strong>今日计划</strong>
+        </div>
+        <div class="today-date">
+          <svg class="icon"><use href="#icon-calendar" /></svg>
+          <span id="date-label"></span>
+        </div>
+      </header>
+
+      <section class="page-heading">
+        <div>
+          <div class="eyebrow">MAKE TIME FOR YOURSELF</div>
+          <h1>今天，也向前一点<span>。</span></h1>
+          <p>把想做的事写下来，把专注的时间留给自己。</p>
+        </div>
+        <button class="button primary add-trigger">
+          <svg class="icon"><use href="#icon-plus" /></svg>新建学习任务
+        </button>
+      </section>
+
+      <section class="hero" aria-label="今日寄语">
+        <div class="hero-copy">
+          <span class="hero-label"
+            ><span></span> YOUR DAILY LITTLE PROGRESS</span
+          >
+          <h2>不必一下子很厉害，<br />只要每天多一点热爱。</h2>
+          <p>一次专注，一点积累。你付出的时间，终会开花。</p>
+          <div class="hero-bottom">
+            <span class="hero-line"></span>让成长，在日常里发生
+          </div>
+        </div>
+        <svg
+          class="hero-art"
+          viewBox="0 0 360 250"
+          fill="none"
+          aria-hidden="true"
+        >
+          <circle cx="210" cy="119" r="93" fill="#e0e7d3" />
+          <circle cx="285" cy="51" r="21" fill="#e5c97c" />
+          <path d="M58 211h265" stroke="#a4b59b" stroke-linecap="round" />
+          <path d="m94 191 81-9 72 12-79 10Z" fill="#d1b581" />
+          <path d="M94 191v15l73 12 80-12v-12l-79 10Z" fill="#f7f4e9" />
+          <path d="m94 206 73 12 80-12" stroke="#b29b75" stroke-width="3" />
+          <path d="m106 176 81-9 66 11-80 12Z" fill="#78917b" />
+          <path d="M106 176v13l67 11 80-11v-11l-80 12Z" fill="#f6f5ed" />
+          <path d="m106 189 67 11 80-11" stroke="#52745d" stroke-width="3" />
+          <path
+            d="M208 130c-3-32 4-68 22-89m-21 75c-12-15-21-21-35-26m37 11c9-13 19-21 34-23"
+            stroke="#567352"
+            stroke-width="3"
+            stroke-linecap="round"
+          />
+          <path
+            d="M213 75c-23-4-30-15-27-31 24 0 32 11 27 31Z"
+            fill="#6f8c64"
+          />
+          <path d="M221 58c-6-25 4-39 22-42 9 23 0 38-22 42Z" fill="#456e50" />
+          <path d="M215 98c7-26 22-35 43-29-4 22-19 32-43 29Z" fill="#78965f" />
+          <path d="M195 103c-22 5-39-5-44-23 24-8 40 3 44 23Z" fill="#4c7656" />
+          <path d="M182 125h57l-7 45c-9 8-33 8-43 0Z" fill="#cbaa7d" />
+          <path d="M181 125c0-5 59-5 59 0v8c-9 5-49 5-59 0Z" fill="#dbbe94" />
+          <path
+            d="M197 143v18m7-18v21m8-21v21m8-22v19"
+            stroke="#b79468"
+            stroke-linecap="round"
+          />
+          <path d="M276 174h25v28c-5 6-19 6-25 0Z" fill="#78917b" />
+          <path
+            d="M301 178c19-3 17 22 0 18"
+            stroke="#78917b"
+            stroke-width="5"
+          />
+          <ellipse cx="288.5" cy="174" rx="12.5" ry="3" fill="#45674e" />
+          <path
+            d="M284 161c-7-9 5-11 1-20m9 20c-7-9 5-11 1-20"
+            stroke="#9eae95"
+            stroke-width="2"
+            stroke-linecap="round"
+          />
+          <path d="m102 90 3 7 7 3-7 3-3 7-3-7-7-3 7-3Z" fill="#b2bf98" />
+          <circle cx="306" cy="115" r="3" fill="#9fae83" />
+          <circle cx="123" cy="142" r="2" fill="#9fae83" />
+        </svg>
+      </section>
+
+      <section class="stats" aria-label="今日学习概览">
+        <div class="stat-card">
+          <span class="stat-icon sage"
+            ><svg class="icon"><use href="#icon-book" /></svg
+          ></span>
+          <div>
+            <span class="stat-label">今日学习任务</span>
+            <div class="stat-value">
+              <strong id="total-count">0</strong><span>项计划</span>
+            </div>
+          </div>
+          <span class="stat-caption">给今天一个方向</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-icon sand"
+            ><svg class="icon"><use href="#icon-clock" /></svg
+          ></span>
+          <div>
+            <span class="stat-label">已专注时长</span>
+            <div class="stat-value">
+              <strong id="focus-minutes">0</strong><span>分钟</span>
+            </div>
+          </div>
+          <span class="stat-caption">每一分钟都有意义</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-icon lavender"
+            ><svg class="icon"><use href="#icon-check" /></svg
+          ></span>
+          <div>
+            <span class="stat-label">今日完成进度</span>
+            <div class="stat-value">
+              <strong id="completion-percent">0</strong><span>%</span>
+            </div>
+          </div>
+          <div class="mini-progress">
+            <span id="completion-text">0 / 0 项已完成</span>
+            <div class="progress-track"><span id="completion-bar"></span></div>
+          </div>
+        </div>
+      </section>
+
+      <div class="workspace-grid">
+        <section class="panel tasks-panel" aria-labelledby="tasks-heading">
+          <div class="panel-heading">
+            <div>
+              <h2 id="tasks-heading">
+                今日学习清单 <span id="list-count">0</span>
+              </h2>
+              <p>心有计划，行动就有方向。</p>
+            </div>
+            <button class="icon-button add-trigger" aria-label="添加学习任务">
+              <svg class="icon"><use href="#icon-plus" /></svg>
+            </button>
+          </div>
+          <div class="task-toolbar">
+            <div class="filters" role="group" aria-label="筛选任务">
+              <button
+                class="filter active"
+                data-filter="all"
+                aria-pressed="true"
+              >
+                全部
+              </button>
+              <button class="filter" data-filter="pending" aria-pressed="false">
+                待完成
+              </button>
+              <button class="filter" data-filter="done" aria-pressed="false">
+                已完成
+              </button>
+            </div>
+            <span class="order-label">按计划顺序</span>
+          </div>
+          <div id="task-list" class="task-list"></div>
+          <button class="add-row add-trigger">
+            <svg class="icon"><use href="#icon-plus" /></svg>添加一个小目标
+          </button>
+          <div class="list-note">
+            <svg class="icon"><use href="#icon-leaf" /></svg>
+            不求填满每一天，只求认真对待每一件小事。
+          </div>
+        </section>
+
+        <section class="panel timer-panel" aria-labelledby="timer-heading">
+          <div class="timer-header">
+            <h2 id="timer-heading">
+              <svg class="icon"><use href="#icon-clock" /></svg>专注时刻
+            </h2>
+            <span id="timer-status" class="status-pill">准备开始</span>
+          </div>
+          <div class="timer-task">
+            <span id="timer-category" class="category-label"
+              >给自己一段专注的时间</span
+            >
+            <h3 id="timer-task-name">选择一个学习任务</h3>
+          </div>
+          <div class="timer-dial" id="timer-dial">
+            <svg class="timer-ring" viewBox="0 0 240 240" aria-hidden="true">
+              <circle class="ring-track" cx="120" cy="120" r="108" />
+              <circle id="ring-progress" cx="120" cy="120" r="108" />
+            </svg>
+            <div class="timer-digits">
+              <span id="time-display" role="timer" aria-label="剩余时间"
+                >00:00</span
+              >
+              <span id="timer-caption">放下杂念，从此刻开始</span>
+            </div>
+            <span class="dial-dot"></span>
+          </div>
+          <div class="timer-controls">
+            <button id="start-button" class="button primary">
+              <svg class="icon"><use href="#icon-play" /></svg>
+              <span id="start-label">开始专注</span>
+            </button>
+            <button
+              id="reset-button"
+              class="icon-button reset-button"
+              aria-label="重新计时"
+              title="重新计时"
+            >
+              <svg class="icon"><use href="#icon-reset" /></svg>
+            </button>
+          </div>
+          <p class="timer-rule">计时结束，任务才会自动完成</p>
+          <div class="focus-tip">
+            <span>✦</span>
+            <p>
+              这一刻，只做这一件事。<br /><small
+                >世界很大，先专注眼前的小小目标。</small
+              >
+            </p>
+          </div>
+        </section>
+      </div>
+      <footer>
+        <span>拾光 · 让每一份专注，都有回响</span>
+        <span id="save-status"><i></i>进度自动保存在此浏览器</span>
+      </footer>
+    </main>
+
+    <dialog id="task-dialog" aria-labelledby="dialog-title">
+      <form id="task-form">
+        <div class="dialog-heading">
+          <div>
+            <span class="eyebrow">A NEW LITTLE GOAL</span>
+            <h2 id="dialog-title">给成长留一点时间</h2>
+          </div>
+          <button
+            type="button"
+            class="icon-button close-dialog"
+            aria-label="关闭"
+          >
+            <svg class="icon"><use href="#icon-close" /></svg>
+          </button>
+        </div>
+        <p class="dialog-description">从一个小目标开始，让今天有所收获。</p>
+        <label for="task-name">学习任务</label>
+        <input
+          id="task-name"
+          name="title"
+          required
+          maxlength="60"
+          placeholder="例如：读 20 页喜欢的书"
+          autocomplete="off"
+        />
+        <div class="form-grid">
+          <div>
+            <label for="task-category">学习分类</label>
+            <select id="task-category" name="category">
+              <option>阅读</option>
+              <option>语言</option>
+              <option>编程</option>
+              <option>课程</option>
+              <option>其他</option>
+            </select>
+          </div>
+          <div>
+            <label for="task-duration">专注时长（分钟）</label>
+            <input
+              id="task-duration"
+              name="minutes"
+              type="number"
+              min="1"
+              max="480"
+              step="1"
+              value="25"
+              required
+            />
+          </div>
+        </div>
+        <fieldset>
+          <legend>常用时长</legend>
+          <div class="duration-presets">
+            <button type="button" data-minutes="15">15 分钟</button>
+            <button type="button" data-minutes="25" class="selected">
+              25 分钟
+            </button>
+            <button type="button" data-minutes="45">45 分钟</button>
+            <button type="button" data-minutes="60">60 分钟</button>
+          </div>
+        </fieldset>
+        <label for="task-note">给自己的小提示 <span>选填</span></label>
+        <input
+          id="task-note"
+          name="note"
+          maxlength="100"
+          placeholder="例如：把手机放远一点，认真做笔记"
+        />
+        <p class="form-hint">任务会加入每日计划，第二天自动开始新一轮。</p>
+        <button class="button primary submit-button" type="submit">
+          <svg class="icon"><use href="#icon-plus" /></svg>加入我的计划
+        </button>
+      </form>
+    </dialog>
+
+    <dialog id="history-dialog" aria-labelledby="history-title">
+      <div class="dialog-heading">
+        <div>
+          <span class="eyebrow">YOUR GROWTH JOURNEY</span>
+          <h2 id="history-title">每一份努力，都有迹可循</h2>
+        </div>
+        <button class="icon-button close-dialog" aria-label="关闭">
+          <svg class="icon"><use href="#icon-close" /></svg>
+        </button>
+      </div>
+      <p class="dialog-description">
+        最近 30 条学习记录，保存在当前浏览器中。
+      </p>
+      <div id="history-list"></div>
+    </dialog>
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  </body>
+</html>
