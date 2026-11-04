@@ -3,7 +3,14 @@ import { readFile as read_file } from "node:fs/promises";
 import { networkInterfaces as network_interfaces } from "node:os";
 
 const host = process.env.HOST || "0.0.0.0";
-const port = Number(process.env.PORT || 3000);
+const raw_port = process.env.PORT;
+const parsed_port =
+  raw_port !== undefined && raw_port !== "" ? Number(raw_port) : 3000;
+const port =
+  Number.isInteger(parsed_port) && parsed_port >= 0 && parsed_port <= 65535
+    ? parsed_port
+    : 3000;
+
 const public_files = new Map([
   ["/", ["index.html", "text/html; charset=utf-8"]],
   ["/index.html", ["index.html", "text/html; charset=utf-8"]],
@@ -54,7 +61,8 @@ server.listen(port, host, () => {
   }
   if (host === "0.0.0.0") {
     const addresses = new Set(
-      Object.values(network_interfaces()).flat()
+      Object.values(network_interfaces())
+        .flat()
         .filter((item) => item && item.family === "IPv4" && !item.internal)
         .map((item) => item.address),
     );
