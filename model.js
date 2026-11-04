@@ -8,11 +8,37 @@ export function day_key(now = Date.now()) {
   return `${date.getFullYear()}-${month}-${day}`;
 }
 
+export function create_task_id(crypto_api = globalThis.crypto) {
+  /**
+   * 生成任务 UUID，兼容局域网 HTTP 下没有 randomUUID 的浏览器。
+   *
+   * Args:
+   *   crypto_api: 提供 getRandomValues 的 Web Crypto 对象。
+   *
+   * Returns:
+   *   UUID v4 格式的随机任务标识。
+   */
+  if (typeof crypto_api.randomUUID === "function") {
+    return crypto_api.randomUUID();
+  }
+  const bytes = crypto_api.getRandomValues(new Uint8Array(16));
+  bytes[6] = (bytes[6] & 0x0f) | 0x40;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  const hex = Array.from(bytes, (byte) => {
+    return byte.toString(16).padStart(2, "0");
+  }).join("");
+  return [
+    hex.slice(0, 8), hex.slice(8, 12), hex.slice(12, 16),
+    hex.slice(16, 20), hex.slice(20),
+  ].join("-");
+}
+
+
 export function create_task(title, category, minutes, note = "") {
   /** 创建一个尚未开始的每日学习任务。 */
   const duration_ms = minutes * 60_000;
   return {
-    id: crypto.randomUUID(),
+    id: create_task_id(),
     title,
     category,
     note,

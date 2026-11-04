@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   create_state,
   create_task,
+  create_task_id,
   day_key,
   task_remaining,
   get_stats,
@@ -13,6 +14,28 @@ import {
 } from "../model.js";
 
 const start = new Date(2026, 5, 12, 10, 0, 0).getTime();
+
+
+test("局域网 HTTP 无 randomUUID 时仍能生成唯一任务标识", () => {
+  const crypto_api = {
+    getRandomValues: globalThis.crypto.getRandomValues.bind(globalThis.crypto),
+  };
+  const uuid_pattern = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab]/;
+  const ids = new Set();
+  for (let index = 0; index < 100; index += 1) {
+    const id = create_task_id(crypto_api);
+    assert.equal(id.length, 36);
+    assert.match(id, uuid_pattern);
+    ids.add(id);
+  }
+  assert.equal(ids.size, 100);
+});
+
+
+test("HTTPS 或 localhost 优先使用原生 randomUUID", () => {
+  const id = create_task_id({ randomUUID: () => "native-uuid" });
+  assert.equal(id, "native-uuid");
+});
 
 test("开始、暂停、恢复，只有计时结束后才完成", () => {
   const state = create_state(start);

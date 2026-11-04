@@ -1,6 +1,8 @@
 import { createServer as create_server } from "node:http";
 import { readFile as read_file } from "node:fs/promises";
+import { networkInterfaces as network_interfaces } from "node:os";
 
+const host = process.env.HOST || "0.0.0.0";
 const port = Number(process.env.PORT || 3000);
 const public_files = new Map([
   ["/", ["index.html", "text/html; charset=utf-8"]],
@@ -11,7 +13,14 @@ const public_files = new Map([
 ]);
 
 const server = create_server(async (request, response) => {
-  const pathname = new URL(request.url, "http://localhost").pathname;
+  let pathname;
+  try {
+    pathname = new URL(request.url, "http://localhost").pathname;
+  } catch {
+    response.writeHead(400);
+    response.end("Bad request");
+    return;
+  }
   const file = public_files.get(pathname);
   if (!file || !["GET", "HEAD"].includes(request.method)) {
     response.writeHead(404);
@@ -37,6 +46,22 @@ server.on("error", (error) => {
   process.exitCode = 1;
 });
 
-server.listen(port, "127.0.0.1", () => {
-  console.log(`拾光已启动：http://localhost:${port}`);
+server.listen(port, host, () => {
+  const actual_port = server.address().port;
+  console.log(`监听地址：${host}:${actual_port}`);
+  if (host === "0.0.0.0" || host === "127.0.0.1") {
+    console.log(`本机访问：http://localhost:${actual_port}`);
+  }
+  if (host === "0.0.0.0") {
+    const addresses = new Set(
+      Object.values(network_interfaces()).flat()
+        .filter((item) => item && item.family === "IPv4" && !item.internal)
+        .map((item) => item.address),
+    );
+    for (const address of addresses) {
+      console.log(`网络访问：http://${address}:${actual_port}`);
+    }
+    console.log("手机请连接同一局域网，选择电脑 Wi-Fi 或有线网卡的地址。");
+    console.log("服务未设置登录限制，请仅在可信网络使用。");
+  }
 });

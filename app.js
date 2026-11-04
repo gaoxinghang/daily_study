@@ -394,6 +394,15 @@ find("#task-list").addEventListener("click", (event) => {
   }
   save_state();
   render();
+  if (action !== "delete" && matchMedia("(max-width: 760px)").matches) {
+    const reduced_motion = matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+    find(".timer-panel").scrollIntoView({
+      behavior: reduced_motion ? "instant" : "smooth",
+      block: "start",
+    });
+  }
 });
 
 find("#start-button").addEventListener("click", () => {
