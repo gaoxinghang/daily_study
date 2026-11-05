@@ -6,7 +6,7 @@
       name="viewport"
       content="width=device-width, initial-scale=1, viewport-fit=cover"
     />
-    <meta name="theme-color" content="#f5f6f0" id="theme-color-meta" />
+    <meta name="theme-color" content="#f4f6f0" id="theme-color-meta" />
     <meta
       name="description"
       content="拾光，每天留一点时间给成长。安排学习计划，开启专注计时。"
@@ -21,11 +21,28 @@
     <script type="module" src="app.js"></script>
   </head>
   <body data-account="loading">
+    <!-- 流光粒子画布与极光背景层 -->
+    <div class="ambient-stage" aria-hidden="true">
+      <div class="aurora-orb orb-emerald"></div>
+      <div class="aurora-orb orb-amber"></div>
+      <div class="aurora-orb orb-sage"></div>
+      <div class="ambient-grid"></div>
+    </div>
+    <canvas id="ambient-canvas" aria-hidden="true"></canvas>
+
     <section class="auth-screen" aria-labelledby="auth-title">
-      <div class="auth-card">
-        <p class="eyebrow">SHIGUANG · YOUR PERSONAL SPACE</p>
+      <div class="auth-card spotlight-card">
+        <div class="auth-brand-badge">
+          <span class="brand-mark">
+            <svg viewBox="0 0 40 40" aria-hidden="true">
+              <path d="M12 29V12c10-3 19 3 14 11-3 5-9 0-5-4" />
+              <circle cx="28" cy="10" r="2" />
+            </svg>
+          </span>
+          <p class="eyebrow">SHIGUANG · YOUR PERSONAL SPACE</p>
+        </div>
         <h1 id="auth-title">欢迎回到拾光</h1>
-        <p>让每一份成长，跟随你去往不同设备。</p>
+        <p>让每一份成长，化作星火，跟随你去往不同设备。</p>
         <form id="auth-form" class="account-form">
           <label>用户名
             <input id="auth-username" name="username" required
@@ -58,6 +75,7 @@
         <noscript>请启用 JavaScript 后使用账号和云端学习功能。</noscript>
       </div>
     </section>
+
     <svg
       class="svg-library"
       xmlns="http://www.w3.org/2000/svg"
@@ -239,13 +257,13 @@
         </button>
       </section>
 
-      <section class="hero" aria-label="今日寄语">
+      <section class="hero spotlight-card" aria-label="今日寄语">
         <div class="hero-copy">
           <span class="hero-label">
             <span></span> YOUR DAILY LITTLE PROGRESS
           </span>
           <h2>不必一下子很厉害，<br />只要每天多一点热爱。</h2>
-          <p>一次专注，一点积累。你付出的时间，终会开花。</p>
+          <p>一次专注，一点积累。你付出的时间，终会化作漫天星火。</p>
           <div class="hero-bottom">
             <span class="hero-line"></span>让成长，在日常里发生
           </div>
@@ -305,7 +323,7 @@
       </section>
 
       <section class="stats" aria-label="今日学习概览">
-        <div class="stat-card">
+        <div class="stat-card spotlight-card">
           <span class="stat-icon sage">
             <svg class="icon"><use href="#icon-book" /></svg>
           </span>
@@ -317,7 +335,7 @@
           </div>
           <span class="stat-caption">给今天一个方向</span>
         </div>
-        <div class="stat-card">
+        <div class="stat-card spotlight-card">
           <span class="stat-icon sand">
             <svg class="icon"><use href="#icon-clock" /></svg>
           </span>
@@ -329,7 +347,7 @@
           </div>
           <span class="stat-caption">每一分钟都有意义</span>
         </div>
-        <div class="stat-card">
+        <div class="stat-card spotlight-card">
           <span class="stat-icon lavender">
             <svg class="icon"><use href="#icon-check" /></svg>
           </span>
@@ -347,7 +365,7 @@
       </section>
 
       <div class="workspace-grid">
-        <section class="panel tasks-panel" aria-labelledby="tasks-heading">
+        <section class="panel tasks-panel spotlight-card" aria-labelledby="tasks-heading">
           <div class="panel-heading">
             <div>
               <h2 id="tasks-heading">
@@ -404,7 +422,7 @@
         </section>
 
         <section
-          class="panel timer-panel"
+          class="panel timer-panel spotlight-card"
           id="timer-panel"
           aria-labelledby="timer-heading"
         >
@@ -442,7 +460,22 @@
             <p id="timer-task-note" class="timer-task-note"></p>
           </div>
           <div class="timer-dial" id="timer-dial">
+            <div class="dial-aura" aria-hidden="true"></div>
             <svg class="timer-ring" viewBox="0 0 240 240" aria-hidden="true">
+              <defs>
+                <linearGradient id="ring-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="var(--green)" />
+                  <stop offset="55%" stop-color="var(--green-accent)" />
+                  <stop offset="100%" stop-color="var(--gold-accent)" />
+                </linearGradient>
+              </defs>
+              <circle
+                class="ring-outer-orbit"
+                cx="120"
+                cy="120"
+                r="116"
+                stroke-dasharray="4 18"
+              />
               <circle
                 class="ring-ticks"
                 cx="120"
@@ -457,13 +490,13 @@
                   class="dial-dot-halo"
                   cx="228"
                   cy="120"
-                  r="8"
+                  r="11"
                 />
                 <circle
                   class="dial-dot"
                   cx="228"
                   cy="120"
-                  r="4.5"
+                  r="5"
                 />
               </g>
             </svg>
@@ -516,7 +549,7 @@
         </section>
 
         <section class="stats" aria-label="学习历程概览">
-          <div class="stat-card">
+          <div class="stat-card spotlight-card">
             <span class="stat-icon sage">
               <svg class="icon"><use href="#icon-calendar" /></svg>
             </span>
@@ -528,7 +561,7 @@
             </div>
             <span class="stat-caption">日拱一卒的坚持</span>
           </div>
-          <div class="stat-card">
+          <div class="stat-card spotlight-card">
             <span class="stat-icon sand">
               <svg class="icon"><use href="#icon-clock" /></svg>
             </span>
@@ -540,7 +573,7 @@
             </div>
             <span class="stat-caption">沉淀的时间价值</span>
           </div>
-          <div class="stat-card">
+          <div class="stat-card spotlight-card">
             <span class="stat-icon lavender">
               <svg class="icon"><use href="#icon-check" /></svg>
             </span>
@@ -554,7 +587,7 @@
           </div>
         </section>
 
-        <section class="panel history-panel" aria-labelledby="history-heading">
+        <section class="panel history-panel spotlight-card" aria-labelledby="history-heading">
           <div class="panel-heading">
             <div>
               <h2 id="history-heading">
@@ -698,8 +731,6 @@
         </button>
       </form>
     </dialog>
-
-
 
     <dialog id="confirm-dialog" aria-labelledby="confirm-title">
       <div class="dialog-heading">

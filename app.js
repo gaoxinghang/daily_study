@@ -22,6 +22,8 @@ let toast_timeout;
 let last_signature = "";
 let confirm_callback = null;
 let current_view = location.hash === "#history" ? "history" : "today";
+let is_timer_running_fx = false;
+let trigger_completion_burst = null;
 
 const category_classes = {
   阅读: "",
@@ -36,14 +38,13 @@ function save_prefs() {
   save_state();
 }
 
-
 function apply_prefs() {
   /** 同步晨曦/静夜主题与提示音按钮状态。 */
   const is_dark = prefs.theme === "dark";
   document.documentElement.dataset.theme = is_dark ? "dark" : "light";
   const theme_meta = find("#theme-color-meta");
   if (theme_meta) {
-    theme_meta.setAttribute("content", is_dark ? "#131b17" : "#f5f6f0");
+    theme_meta.setAttribute("content", is_dark ? "#0b110e" : "#f4f6f0");
   }
   const theme_icon = find("#theme-icon");
   if (theme_icon) {
@@ -77,22 +78,22 @@ function play_completion_chime() {
     if (ctx.state === "suspended") {
       ctx.resume().catch(() => {});
     }
-    const notes = [523.25, 659.25, 783.99];
+    const notes = [523.25, 659.25, 783.99, 1046.5];
     notes.forEach((freq, index) => {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = "sine";
       osc.frequency.value = freq;
-      const start_time = ctx.currentTime + index * 0.14;
+      const start_time = ctx.currentTime + index * 0.12;
       gain.gain.setValueAtTime(0.0001, start_time);
       gain.gain.exponentialRampToValueAtTime(0.08, start_time + 0.04);
-      gain.gain.exponentialRampToValueAtTime(0.0001, start_time + 1.1);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start_time + 1.25);
       osc.connect(gain);
       gain.connect(ctx.destination);
       osc.start(start_time);
-      osc.stop(start_time + 1.15);
+      osc.stop(start_time + 1.3);
     });
-    setTimeout(() => ctx.close().catch(() => {}), 1800);
+    setTimeout(() => ctx.close().catch(() => {}), 2000);
   } catch {
     // 浏览器音频策略受限时静默降级
   }
@@ -102,7 +103,6 @@ function save_state() {
   /** 将当前账号的学习数据加入串行云端保存队列。 */
   if (account_ready) cloud.schedule_save({ state, prefs });
 }
-
 
 function show_toast(message) {
   /** 展示不打断计时的操作反馈。 */
@@ -182,7 +182,7 @@ function task_markup(task, now) {
       : started
         ? "已暂停"
         : "";
-  const classes = ["task-card"];
+  const classes = ["task-card", "spotlight-card"];
   if (selected) classes.push("selected");
   if (running) classes.push("running");
   if (task.completed) classes.push("completed");
@@ -294,6 +294,9 @@ function render_timer(now) {
   const started = Boolean(task && remaining < task.duration_ms);
   const progress = task ? 1 - remaining / task.duration_ms : 0;
 
+  is_timer_running_fx = running;
+  document.body.classList.toggle("is-focusing", running);
+
   find("#timer-task-name").textContent = task
     ? task.title
     : "先添加一个学习任务";
@@ -311,6 +314,7 @@ function render_timer(now) {
     dot_group.style.transform = `rotate(${progress * 360}deg)`;
   }
   find("#timer-dial").classList.toggle("running", running);
+  find("#timer-dial").classList.toggle("completed", completed);
   find("#timer-status").textContent = completed
     ? "今日已完成"
     : running
@@ -322,7 +326,7 @@ function render_timer(now) {
   find("#timer-caption").textContent = completed
     ? "又向理想的自己，近了一点"
     : running
-      ? "每一秒，都在积累"
+      ? "每一秒，都在发光"
       : started
         ? "歇一会儿，随时可以继续"
         : "放下杂念，从此刻开始";
@@ -355,6 +359,9 @@ function render() {
       show_toast("新的一天，新的开始。昨日记录已归档。");
     } else if (result.completed_ids.length) {
       play_completion_chime();
+      if (typeof trigger_completion_burst === "function") {
+        trigger_completion_burst();
+      }
       show_toast("专注完成！今天又积累了一点成长。");
     }
   }
@@ -485,7 +492,7 @@ function render_history(now = Date.now()) {
       const minutes = Math.floor(row.focus_ms / 60_000);
       const day_label = escape_html(row.day);
       return `
-        <article class="history-row ${is_today ? "today" : ""}">
+        <article class="history-row spotlight-card ${is_today ? "today" : ""}">
           <div class="history-date-cell">
             <strong>${day_label}</strong>
             ${is_today ? '<span class="history-badge">今天</span>' : ""}
@@ -605,6 +612,303 @@ function toggle_zen_mode() {
   }
 }
 
+/* =========================================================
+ * 流光粒子引擎 & 交互聚光灯系统 (Luminous Chrono-Botanical FX)
+ * ========================================================= */
+function init_visual_effects() {
+  const canvas = find("#ambient-canvas");
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return;
+
+  const reduced_motion = matchMedia("(prefers-reduced-motion: reduce)");
+  let width = (canvas.width = window.innerWidth);
+  let height = (canvas.height = window.innerHeight);
+
+  const mouse = { x: width * 0.5, y: height * 0.35, vx: 0, vy: 0, active: false };
+  const particles = [];
+  const ripples = [];
+  const bursts = [];
+
+  function create_ambient_particle() {
+    const depth = 0.25 + Math.random() * 0.85;
+    return {
+      x: Math.random() * width,
+      y: Math.random() * height,
+      vx: (Math.random() - 0.5) * 0.32 * depth,
+      vy: (-0.18 - Math.random() * 0.35) * depth,
+      radius: (1.1 + Math.random() * 2.2) * depth,
+      alpha: 0.15 + Math.random() * 0.45,
+      phase: Math.random() * Math.PI * 2,
+      phase_speed: 0.012 + Math.random() * 0.024,
+      hue_type: Math.random() > 0.32 ? "emerald" : "gold",
+      depth,
+    };
+  }
+
+  const target_count = Math.min(72, Math.max(32, Math.floor((width * height) / 22000)));
+  for (let i = 0; i < target_count; i += 1) {
+    particles.push(create_ambient_particle());
+  }
+
+  window.addEventListener("resize", () => {
+    width = canvas.width = window.innerWidth;
+    height = canvas.height = window.innerHeight;
+  });
+
+  window.addEventListener(
+    "pointermove",
+    (event) => {
+      mouse.vx = event.clientX - mouse.x;
+      mouse.vy = event.clientY - mouse.y;
+      mouse.x = event.clientX;
+      mouse.y = event.clientY;
+      mouse.active = true;
+
+      // 更新全局鼠标坐标与卡片聚光灯
+      document.documentElement.style.setProperty("--cursor-x", `${event.clientX}px`);
+      document.documentElement.style.setProperty("--cursor-y", `${event.clientY}px`);
+
+      const cards = document.querySelectorAll(
+        ".stat-card, .panel, .task-card, .history-row, .auth-card",
+      );
+      cards.forEach((card) => {
+        const rect = card.getBoundingClientRect();
+        if (
+          event.clientX >= rect.left - 120 &&
+          event.clientX <= rect.right + 120 &&
+          event.clientY >= rect.top - 120 &&
+          event.clientY <= rect.bottom + 120
+        ) {
+          card.style.setProperty("--spot-x", `${event.clientX - rect.left}px`);
+          card.style.setProperty("--spot-y", `${event.clientY - rect.top}px`);
+        }
+      });
+    },
+    { passive: true },
+  );
+
+  window.addEventListener(
+    "pointerdown",
+    (event) => {
+      if (reduced_motion.matches) return;
+      ripples.push({
+        x: event.clientX,
+        y: event.clientY,
+        radius: 4,
+        max_radius: 85,
+        alpha: 0.42,
+      });
+      for (let i = 0; i < 8; i += 1) {
+        const angle = (Math.PI * 2 * i) / 8 + Math.random() * 0.4;
+        const speed = 1.2 + Math.random() * 2.4;
+        bursts.push({
+          x: event.clientX,
+          y: event.clientY,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          radius: 1.5 + Math.random() * 1.8,
+          alpha: 0.75,
+          decay: 0.022 + Math.random() * 0.015,
+          hue_type: i % 2 === 0 ? "emerald" : "gold",
+        });
+      }
+    },
+    { passive: true },
+  );
+
+  trigger_completion_burst = () => {
+    if (reduced_motion.matches) return;
+    const dial = find("#timer-dial");
+    const rect = dial ? dial.getBoundingClientRect() : null;
+    const cx = rect ? rect.left + rect.width / 2 : width / 2;
+    const cy = rect ? rect.top + rect.height / 2 : height / 2;
+    ripples.push({ x: cx, y: cy, radius: 10, max_radius: 260, alpha: 0.7 });
+    ripples.push({ x: cx, y: cy, radius: 2, max_radius: 180, alpha: 0.5 });
+    for (let i = 0; i < 48; i += 1) {
+      const angle = (Math.PI * 2 * i) / 48 + (Math.random() - 0.5) * 0.2;
+      const speed = 2 + Math.random() * 5.5;
+      bursts.push({
+        x: cx,
+        y: cy,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed - 0.6,
+        radius: 2 + Math.random() * 2.8,
+        alpha: 0.95,
+        decay: 0.01 + Math.random() * 0.012,
+        hue_type: i % 3 === 0 ? "gold" : "emerald",
+      });
+    }
+  };
+
+  function step() {
+    if (reduced_motion.matches) {
+      ctx.clearRect(0, 0, width, height);
+      return;
+    }
+    ctx.clearRect(0, 0, width, height);
+    const is_dark = document.documentElement.dataset.theme === "dark";
+    const speed_mult = is_timer_running_fx ? 1.75 : 1;
+
+    // 专注运行时定位计时表盘中心，形成温柔的星轨向心引力与能量场
+    let dial_cx = null;
+    let dial_cy = null;
+    if (is_timer_running_fx) {
+      const dial = find("#timer-dial");
+      if (dial) {
+        const r = dial.getBoundingClientRect();
+        if (r.width > 0) {
+          dial_cx = r.left + r.width / 2;
+          dial_cy = r.top + r.height / 2;
+        }
+      }
+    }
+
+    // 绘制环境流光粒子与丝滑星座连线
+    for (let i = 0; i < particles.length; i += 1) {
+      const p = particles[i];
+      p.phase += p.phase_speed * speed_mult;
+      p.x += (p.vx + Math.sin(p.phase) * 0.18) * speed_mult;
+      p.y += p.vy * speed_mult;
+
+      // 鼠标微距流体斥力与牵引
+      if (mouse.active) {
+        const dx = p.x - mouse.x;
+        const dy = p.y - mouse.y;
+        const dist_sq = dx * dx + dy * dy;
+        if (dist_sq < 19600 && dist_sq > 1) {
+          const dist = Math.sqrt(dist_sq);
+          const force = (140 - dist) / 140;
+          p.x += (dx / dist) * force * 0.9 * p.depth;
+          p.y += (dy / dist) * force * 0.9 * p.depth;
+        }
+      }
+
+      // 专注模式向心环绕微力
+      if (dial_cx !== null && dial_cy !== null) {
+        const dx = dial_cx - p.x;
+        const dy = dial_cy - p.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < 320 && dist > 95) {
+          p.x += (-dy / dist) * 0.45 * p.depth + (dx / dist) * 0.12;
+          p.y += (dx / dist) * 0.45 * p.depth + (dy / dist) * 0.12;
+        }
+      }
+
+      if (p.y < -20) {
+        p.y = height + 20;
+        p.x = Math.random() * width;
+      } else if (p.y > height + 20) {
+        p.y = -20;
+      }
+      if (p.x < -20) p.x = width + 20;
+      else if (p.x > width + 20) p.x = -20;
+
+      const twinkle = 0.65 + 0.35 * Math.sin(p.phase);
+      const alpha = p.alpha * twinkle * (is_dark ? 1.15 : 0.78);
+
+      // 与邻近粒子形成微弱星网连接
+      for (let j = i + 1; j < particles.length; j += 1) {
+        const p2 = particles[j];
+        const ldx = p.x - p2.x;
+        const ldy = p.y - p2.y;
+        const ldist_sq = ldx * ldx + ldy * ldy;
+        if (ldist_sq < 13500) {
+          const line_alpha = (1 - ldist_sq / 13500) * (is_dark ? 0.13 : 0.08);
+          ctx.beginPath();
+          ctx.moveTo(p.x, p.y);
+          ctx.lineTo(p2.x, p2.y);
+          ctx.strokeStyle = is_dark
+            ? `rgba(134, 214, 158, ${line_alpha})`
+            : `rgba(62, 118, 86, ${line_alpha})`;
+          ctx.lineWidth = 0.75;
+          ctx.stroke();
+        }
+      }
+
+      const color =
+        p.hue_type === "gold"
+          ? is_dark
+            ? `rgba(238, 202, 126, ${alpha})`
+            : `rgba(186, 138, 58, ${alpha})`
+          : is_dark
+            ? `rgba(126, 222, 160, ${alpha})`
+            : `rgba(54, 122, 86, ${alpha})`;
+
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+      ctx.fillStyle = color;
+      ctx.fill();
+
+      if (p.radius > 1.8) {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius * 2.8, 0, Math.PI * 2);
+        ctx.fillStyle =
+          p.hue_type === "gold"
+            ? is_dark
+              ? `rgba(238, 202, 126, ${alpha * 0.16})`
+              : `rgba(186, 138, 58, ${alpha * 0.12})`
+            : is_dark
+              ? `rgba(126, 222, 160, ${alpha * 0.18})`
+              : `rgba(54, 122, 86, ${alpha * 0.12})`;
+        ctx.fill();
+      }
+    }
+
+    // 绘制点击与完成涟漪波纹
+    for (let i = ripples.length - 1; i >= 0; i -= 1) {
+      const r = ripples[i];
+      r.radius += (r.max_radius - r.radius) * 0.08 + 1.2;
+      r.alpha *= 0.93;
+      if (r.alpha <= 0.01 || r.radius >= r.max_radius) {
+        ripples.splice(i, 1);
+        continue;
+      }
+      ctx.beginPath();
+      ctx.arc(r.x, r.y, r.radius, 0, Math.PI * 2);
+      ctx.strokeStyle = is_dark
+        ? `rgba(134, 222, 164, ${r.alpha})`
+        : `rgba(56, 120, 86, ${r.alpha})`;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    }
+
+    // 绘制爆发萤火粒子
+    for (let i = bursts.length - 1; i >= 0; i -= 1) {
+      const b = bursts[i];
+      b.x += b.vx;
+      b.y += b.vy;
+      b.vx *= 0.96;
+      b.vy = b.vy * 0.96 + 0.03;
+      b.alpha -= b.decay;
+      if (b.alpha <= 0.01) {
+        bursts.splice(i, 1);
+        continue;
+      }
+      ctx.beginPath();
+      ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
+      ctx.fillStyle =
+        b.hue_type === "gold"
+          ? is_dark
+            ? `rgba(245, 210, 135, ${b.alpha})`
+            : `rgba(198, 145, 55, ${b.alpha})`
+          : is_dark
+            ? `rgba(130, 230, 168, ${b.alpha})`
+            : `rgba(48, 126, 84, ${b.alpha})`;
+      ctx.fill();
+    }
+
+    requestAnimationFrame(step);
+  }
+
+  if (!reduced_motion.matches) {
+    requestAnimationFrame(step);
+  }
+  reduced_motion.addEventListener("change", () => {
+    if (!reduced_motion.matches) requestAnimationFrame(step);
+  });
+}
+
 find_all(".add-trigger").forEach((button) => {
   button.addEventListener("click", () => open_task_dialog());
 });
@@ -708,6 +1012,10 @@ find("#task-form").addEventListener("submit", (event) => {
   if (edit_id) {
     const target = state.tasks.find((item) => item.id === edit_id);
     if (!target) return;
+    if (state.tasks.length > 300) {
+      show_toast("每日学习任务最多支持 300 项。");
+      return;
+    }
     const elapsed_ms = Math.max(0, target.duration_ms - task_remaining(target));
     if (target.completed && minutes * 60_000 !== target.duration_ms) {
       show_toast("已完成的任务不能修改时长，可以只改标题或提示。");
@@ -735,6 +1043,11 @@ find("#task-form").addEventListener("submit", (event) => {
     render();
     find("#task-dialog").close();
     show_toast("任务修改已保存。");
+    return;
+  }
+
+  if (state.tasks.length >= 300) {
+    show_toast("每日学习任务已达 300 项上限，请先清理部分旧任务。");
     return;
   }
 
@@ -892,6 +1205,8 @@ document.addEventListener("visibilitychange", () => {
   if (!document.hidden) render();
 });
 
+init_visual_effects();
+
 const cloud = create_cloud({
   on_load(workspace) {
     state = workspace.state;
@@ -903,6 +1218,8 @@ const cloud = create_cloud({
   },
   on_lock() {
     account_ready = false;
+    is_timer_running_fx = false;
+    document.body.classList.remove("is-focusing");
     state = create_state();
     prefs = { theme: "light", sound: true };
     last_signature = "";

@@ -306,15 +306,37 @@ export function create_cloud({ on_load, on_lock, notify }) {
     }
   });
 
+  function sanitize_legacy_state(raw) {
+    /** 规整旧浏览器缓存中的文本长度与条目上限，避免导入后被云端接口拒绝。 */
+    if (!raw || typeof raw !== "object" || !Array.isArray(raw.tasks) || !Array.isArray(raw.history)) {
+      return null;
+    }
+    const copy = JSON.parse(JSON.stringify(raw));
+    copy.tasks = copy.tasks.slice(0, 300).map((task) => ({
+      ...task,
+      title: String(task?.title || "").trim().slice(0, 100),
+      category: String(task?.category || "阅读").trim().slice(0, 32),
+      note: String(task?.note || "").trim().slice(0, 500),
+    }));
+    copy.history = copy.history.slice(-29);
+    if (copy.tasks.length > 0 && !copy.tasks.some((item) => item.id === copy.selected_id)) {
+      copy.selected_id = copy.tasks[0].id;
+    } else if (copy.tasks.length === 0) {
+      copy.selected_id = null;
+    }
+    return is_valid_state(copy) ? copy : null;
+  }
+
   function import_legacy(legacy_state, legacy_prefs = {}) {
     /** 只在用户明确确认后，将旧浏览器记录导入当前账号。 */
-    if (!account || !is_valid_state(legacy_state)) {
+    const clean_state = sanitize_legacy_state(legacy_state);
+    if (!account || !clean_state) {
       notify("此浏览器没有可导入的旧版学习记录。");
       return;
     }
     if (!confirm("导入旧学习记录？这会替换当前账号的云端计划。")) return;
     const workspace = {
-      state: legacy_state,
+      state: clean_state,
       prefs: {
         theme: legacy_prefs?.theme === "dark" ? "dark" : "light",
         sound: legacy_prefs?.sound !== false,
@@ -330,7 +352,7 @@ export function create_cloud({ on_load, on_lock, notify }) {
     if (!account) return;
     try {
       const legacy_state = JSON.parse(localStorage.getItem(storage_key));
-      if (is_valid_state(legacy_state)) {
+      if (sanitize_legacy_state(legacy_state)) {
         let legacy_prefs = {};
         try {
           legacy_prefs = JSON.parse(

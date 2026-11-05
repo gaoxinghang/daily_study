@@ -12,57 +12,107 @@ body[data-account="ready"] > .auth-screen {
 }
 
 .auth-screen {
+  position: relative;
+  z-index: 5;
   min-height: 100svh;
   display: grid;
   place-items: center;
   padding: 32px 20px;
-  background: var(--hero-bg);
 }
 
 .auth-card {
-  width: min(100%, 450px);
-  padding: 40px;
-  border: 1px solid var(--line);
-  border-radius: 24px;
-  background: var(--paper);
-  box-shadow: var(--dialog-shadow);
+  position: relative;
+  width: min(100%, 460px);
+  padding: 44px 40px;
+  border: 1px solid var(--glass-border);
+  border-radius: 28px;
+  background: var(--glass-surface-strong);
+  backdrop-filter: blur(28px) saturate(160%);
+  -webkit-backdrop-filter: blur(28px) saturate(160%);
+  box-shadow: var(--dialog-shadow), inset 0 1px 0 var(--specular-top);
+  overflow: hidden;
+  animation: auth-card-enter 0.65s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes auth-card-enter {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.auth-brand-badge {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.auth-brand-badge .brand-mark {
+  width: 38px;
+  height: 40px;
+  border-radius: 12px 12px 12px 4px;
+  flex-shrink: 0;
+}
+
+.auth-brand-badge .brand-mark svg {
+  width: 30px;
 }
 
 .auth-card h1 {
-  margin: 14px 0;
+  margin: 12px 0 8px;
   font-size: 30px;
+  letter-spacing: 0.5px;
 }
 
 .auth-card > p,
 .account-note {
   color: var(--muted);
-  font-size: 13px;
+  font-size: 13.5px;
+  line-height: 1.65;
 }
 
 .account-form {
   display: grid;
   gap: 16px;
-  margin-top: 24px;
+  margin-top: 26px;
 }
 
 .account-form label {
   display: grid;
   gap: 7px;
   color: var(--ink-secondary);
-  font-size: 14px;
+  font-size: 13.5px;
+  font-weight: 600;
+  margin: 0;
 }
 
 .account-form input,
 .account-form textarea {
   width: 100%;
   min-width: 0;
-  padding: 12px;
+  padding: 12px 14px;
   border: 1px solid var(--line-strong);
-  border-radius: 10px;
+  border-radius: 12px;
   background: var(--paper-elevated);
   color: var(--ink);
   font: inherit;
   resize: vertical;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.account-form input:focus,
+.account-form textarea:focus {
+  border-color: var(--green-accent);
+  box-shadow: 0 0 0 3px var(--green-glow);
+  outline: none;
 }
 
 .account-message {
@@ -81,15 +131,25 @@ body[data-account="ready"] > .auth-screen {
   background: transparent;
   color: var(--green-accent);
   padding: 6px;
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.account-link:hover {
+  color: var(--green);
+  text-decoration: underline;
+  text-underline-offset: 4px;
 }
 
 .account-note {
   margin-top: 24px;
   line-height: 1.8;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
 }
 
 .account-profile {
-  padding: 28px;
+  padding: 6px;
 }
 
 .account-profile-heading,
@@ -103,6 +163,30 @@ body[data-account="ready"] > .auth-screen {
 
 .account-profile-heading h2 {
   margin: 0;
+  font-size: 21px;
+}
+
+.account-actions {
+  margin-top: 16px;
+}
+
+.account-actions .button {
+  flex: 1;
+  background: var(--paper-elevated);
+  border-color: var(--line-strong);
+  color: var(--ink-secondary);
+}
+
+.account-actions .button:hover:not(:disabled) {
+  background: var(--soft-green);
+  border-color: var(--green-accent);
+  color: var(--green);
+}
+
+#logout-button:hover:not(:disabled) {
+  background: var(--danger-bg);
+  border-color: var(--danger);
+  color: var(--danger);
 }
 
 #account-name,
@@ -117,7 +201,7 @@ body[data-account="ready"] > .auth-screen {
 
 @media (max-width: 760px) {
   .auth-card {
-    padding: 28px 22px;
+    padding: 32px 24px;
   }
 
   .topbar-right {
