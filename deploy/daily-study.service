@@ -1,0 +1,24 @@
+[Unit]
+Description=Shiguang daily study account service
+After=network.target postgresql.service
+Requires=postgresql.service
+
+[Service]
+Type=simple
+User=daily_study_app
+Group=daily_study_app
+WorkingDirectory=/opt/daily-study/current
+EnvironmentFile=/etc/daily-study.env
+ExecStart=/usr/bin/node server.js
+Restart=on-failure
+RestartSec=3
+TimeoutStopSec=15
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+RestrictSUIDSGID=true
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

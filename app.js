@@ -1,5 +1,4 @@
 import {
-  storage_key,
   create_state,
   create_task,
   task_remaining,
@@ -9,17 +8,15 @@ import {
   toggle_timer,
   update_task,
   reset_task,
-  is_valid_state,
 } from "./model.js";
 
-const ui_prefs_key = "shiguang.daily-study.prefs.v1";
+import { create_cloud } from "./cloud.js";
 const find = (selector) => document.querySelector(selector);
 const find_all = (selector) => document.querySelectorAll(selector);
 
-let storage_available = true;
-let load_warning = "";
-let state = load_state();
-let prefs = load_prefs();
+let account_ready = false;
+let state = create_state();
+let prefs = { theme: "light", sound: true };
 let current_filter = "all";
 let toast_timeout;
 let last_signature = "";
@@ -34,31 +31,11 @@ const category_classes = {
   其他: "other",
 };
 
-function load_prefs() {
-  /** 读取界面主题与提示音偏好设置。 */
-  try {
-    const raw = localStorage.getItem(ui_prefs_key);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      return {
-        theme: parsed.theme === "dark" ? "dark" : "light",
-        sound: parsed.sound !== false,
-      };
-    }
-  } catch {
-    // 忽略本地偏好读取异常
-  }
-  return { theme: "light", sound: true };
+function save_prefs() {
+  /** 将主题与提示音随学习数据一起保存到账号。 */
+  save_state();
 }
 
-function save_prefs() {
-  /** 保存界面主题与提示音偏好设置。 */
-  try {
-    localStorage.setItem(ui_prefs_key, JSON.stringify(prefs));
-  } catch {
-    // 忽略偏好写入异常
-  }
-}
 
 function apply_prefs() {
   /** 同步晨曦/静夜主题与提示音按钮状态。 */
@@ -121,49 +98,11 @@ function play_completion_chime() {
   }
 }
 
-function load_state() {
-  /** 从当前浏览器恢复每日计划，不覆盖损坏的原始备份。 */
-  try {
-    const raw = localStorage.getItem(storage_key);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (is_valid_state(parsed)) return parsed;
-      localStorage.setItem(`${storage_key}.backup`, raw);
-      load_warning = "旧数据无法读取，已保留备份并建立新计划。";
-    }
-  } catch {
-    storage_available = false;
-    load_warning = "无法读取本地记录，本次进度可能无法保存。";
-  }
-  return create_state();
+function save_state() {
+  /** 将当前账号的学习数据加入串行云端保存队列。 */
+  if (account_ready) cloud.schedule_save({ state, prefs });
 }
 
-function save_state() {
-  /** 持久化计时状态；存储不可用时明确提示而不阻断学习。 */
-  try {
-    localStorage.setItem(storage_key, JSON.stringify(state));
-    storage_available = true;
-  } catch {
-    if (storage_available) {
-      show_toast("浏览器无法保存进度，请勿关闭或刷新页面。");
-    }
-    storage_available = false;
-  }
-  const status_box = find("#save-status");
-  const status_text = find("#save-status-text");
-  if (status_box) {
-    status_box.classList.toggle("warning", !storage_available);
-  }
-  if (status_text) {
-    status_text.textContent = storage_available
-      ? "进度自动保存在此浏览器"
-      : "当前进度无法保存，请勿刷新页面";
-  } else if (status_box) {
-    status_box.innerHTML = storage_available
-      ? "<i></i>进度自动保存在此浏览器"
-      : "<i></i>当前进度无法保存，请勿刷新页面";
-  }
-}
 
 function show_toast(message) {
   /** 展示不打断计时的操作反馈。 */
@@ -407,6 +346,7 @@ function render_timer(now) {
 
 function render() {
   /** 刷新概览及计时，任务结构变化时才重建任务列表 DOM。 */
+  if (!account_ready) return;
   const now = Date.now();
   const result = settle(state, now);
   if (result.changed) {
@@ -917,6 +857,7 @@ window.addEventListener("hashchange", () => {
 
 document.addEventListener("keydown", (event) => {
   if (
+    !account_ready ||
     event.defaultPrevented ||
     event.ctrlKey ||
     event.metaKey ||
@@ -947,27 +888,39 @@ document.addEventListener("keydown", (event) => {
   }
 });
 
-window.addEventListener("storage", (event) => {
-  if (event.key !== storage_key || !event.newValue) return;
-  try {
-    const updated_state = JSON.parse(event.newValue);
-    if (is_valid_state(updated_state)) {
-      state = updated_state;
-      render();
-    } else {
-      show_toast("另一个页面的数据格式异常，当前进度保持不变。");
-    }
-  } catch {
-    show_toast("另一个页面的数据无法读取，当前进度保持不变。");
-  }
-});
-
 document.addEventListener("visibilitychange", () => {
   if (!document.hidden) render();
 });
 
-apply_prefs();
-switch_view(current_view);
-save_state();
-if (load_warning) show_toast(load_warning);
+const cloud = create_cloud({
+  on_load(workspace) {
+    state = workspace.state;
+    prefs = workspace.prefs;
+    account_ready = true;
+    last_signature = "";
+    apply_prefs();
+    switch_view(current_view);
+  },
+  on_lock() {
+    account_ready = false;
+    state = create_state();
+    prefs = { theme: "light", sound: true };
+    last_signature = "";
+    current_filter = "all";
+    find("#task-list").replaceChildren();
+    find("#history-list").replaceChildren();
+    find("#task-form").reset();
+    find("#profile-form").reset();
+    find("#timer-task-name").textContent = "";
+    find("#timer-task-note").textContent = "";
+    find("#sidebar-name").textContent = "学习者";
+    find("#sidebar-bio").textContent = "";
+    find("#account-name").textContent = "个人资料";
+    document.title = "拾光 · 每日学习";
+    apply_prefs();
+  },
+  notify: show_toast,
+});
+
+await cloud.start();
 setInterval(render, 250);

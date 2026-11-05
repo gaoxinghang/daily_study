@@ -17,9 +17,47 @@
       href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='12' fill='%232c5947'/%3E%3Cpath d='M12 28V13c9-3 18 2 14 10-3 5-8 1-6-3' fill='none' stroke='%23e7edbe' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E"
     />
     <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="account.css" />
     <script type="module" src="app.js"></script>
   </head>
-  <body>
+  <body data-account="loading">
+    <section class="auth-screen" aria-labelledby="auth-title">
+      <div class="auth-card">
+        <p class="eyebrow">SHIGUANG · YOUR PERSONAL SPACE</p>
+        <h1 id="auth-title">欢迎回到拾光</h1>
+        <p>让每一份成长，跟随你去往不同设备。</p>
+        <form id="auth-form" class="account-form">
+          <label>用户名
+            <input id="auth-username" name="username" required
+              minlength="3" maxlength="32" pattern="[a-zA-Z0-9_]{3,32}"
+              autocomplete="username" autocapitalize="none"
+              spellcheck="false" placeholder="3～32 位字母、数字或下划线" />
+          </label>
+          <label id="register-name-row" hidden>昵称
+            <input id="auth-name" name="display_name" maxlength="40"
+              autocomplete="nickname" placeholder="怎么称呼你？" />
+          </label>
+          <label>密码
+            <input id="auth-password" name="password" type="password"
+              required minlength="10" maxlength="128"
+              autocomplete="current-password" placeholder="至少 10 位字符" />
+          </label>
+          <p id="auth-message" class="account-message" role="status"></p>
+          <p id="http-warning" class="account-message" hidden>
+            当前为 HTTP 连接，密码传输未加密。请勿使用其他网站的密码。
+          </p>
+          <button id="auth-submit" class="button primary" type="submit">
+            登录
+          </button>
+          <button id="auth-mode" class="account-link" type="button">
+            没有账号？去注册
+          </button>
+        </form>
+        <p class="account-note">同一账号仅允许一个登录会话。<br />
+          在其他设备或浏览器登录后，旧会话会自动退出。</p>
+        <noscript>请启用 JavaScript 后使用账号和云端学习功能。</noscript>
+      </div>
+    </section>
     <svg
       class="svg-library"
       xmlns="http://www.w3.org/2000/svg"
@@ -150,12 +188,12 @@
         <span>A LITTLE BETTER, EVERY DAY.</span>
       </div>
       <div class="sidebar-bottom">
-        <span class="avatar">拾</span>
+        <span class="avatar" id="sidebar-avatar">拾</span>
         <div>
-          <strong>终身学习者</strong>
-          <small>正在成为更好的自己</small>
+          <strong id="sidebar-name">学习者</strong>
+          <small id="sidebar-bio">正在成为更好的自己</small>
         </div>
-        <span class="online-dot" title="本地学习空间"></span>
+        <span class="online-dot" title="账号云端学习空间"></span>
       </div>
     </aside>
 
@@ -167,6 +205,10 @@
           <strong id="breadcrumb-current">今日计划</strong>
         </div>
         <div class="topbar-right">
+          <button id="account-button" class="theme-toggle-btn"
+            type="button" aria-label="个人资料与账号设置">
+            <span id="account-name">个人资料</span>
+          </button>
           <div class="today-date">
             <svg class="icon"><use href="#icon-calendar" /></svg>
             <span id="date-label"></span>
@@ -519,7 +561,7 @@
                 <svg class="icon"><use href="#icon-chart" /></svg>
                 学习足迹历程 <span id="history-entry-count">0</span>
               </h2>
-              <p>按日归档每日专注投入与完成进度，数据保存在当前浏览器中。</p>
+              <p>按日归档每日专注投入与完成进度，数据随账号保存在云端。</p>
             </div>
           </div>
           <div class="history-table-header">
@@ -535,10 +577,45 @@
       <footer>
         <span>拾光 · 让每一份专注，都有回响</span>
         <span id="save-status">
-          <i></i><span id="save-status-text">进度自动保存在此浏览器</span>
+          <i></i><span id="save-status-text">正在连接云端学习空间…</span>
         </span>
       </footer>
     </main>
+
+    <dialog id="profile-dialog" aria-labelledby="profile-title">
+      <div class="account-profile">
+        <div class="account-profile-heading">
+          <h2 id="profile-title">个人资料与账号</h2>
+          <button class="button close-dialog" type="button">关闭</button>
+        </div>
+        <form id="profile-form" class="account-form">
+          <label>用户名
+            <input id="profile-username" readonly autocomplete="username" />
+          </label>
+          <label>昵称
+            <input id="profile-name" required maxlength="40"
+              autocomplete="nickname" />
+          </label>
+          <label>个人简介
+            <textarea id="profile-bio" maxlength="200" rows="3"></textarea>
+          </label>
+          <p id="profile-message" class="account-message" role="status"></p>
+          <button id="profile-save" type="submit" class="button primary">
+            保存个人资料
+          </button>
+        </form>
+        <p class="account-note">主题、提示音、任务和学习记录随账号同步。<br />
+          新设备登录会使旧设备的会话失效。</p>
+        <div class="account-actions">
+          <button id="import-local-button" type="button" class="button">
+            导入此浏览器的旧记录
+          </button>
+          <button id="logout-button" type="button" class="button">
+            退出登录
+          </button>
+        </div>
+      </div>
+    </dialog>
 
     <dialog id="task-dialog" aria-labelledby="dialog-title">
       <form id="task-form">

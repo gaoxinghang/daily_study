@@ -1,0 +1,8 @@
+[Unit]
+Description=Daily study PostgreSQL backup
+After=postgresql.service
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh /opt/daily-study/current/deploy/backup.sh
+UMask=0077

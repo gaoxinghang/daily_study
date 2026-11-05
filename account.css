@@ -1,0 +1,130 @@
+[hidden] {
+  display: none !important;
+}
+
+body:not([data-account="ready"]) > .sidebar,
+body:not([data-account="ready"]) > main {
+  display: none;
+}
+
+body[data-account="ready"] > .auth-screen {
+  display: none;
+}
+
+.auth-screen {
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  padding: 32px 20px;
+  background: var(--hero-bg);
+}
+
+.auth-card {
+  width: min(100%, 450px);
+  padding: 40px;
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  background: var(--paper);
+  box-shadow: var(--dialog-shadow);
+}
+
+.auth-card h1 {
+  margin: 14px 0;
+  font-size: 30px;
+}
+
+.auth-card > p,
+.account-note {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.account-form {
+  display: grid;
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.account-form label {
+  display: grid;
+  gap: 7px;
+  color: var(--ink-secondary);
+  font-size: 14px;
+}
+
+.account-form input,
+.account-form textarea {
+  width: 100%;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  background: var(--paper-elevated);
+  color: var(--ink);
+  font: inherit;
+  resize: vertical;
+}
+
+.account-message {
+  margin: 0;
+  color: var(--danger);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.account-message:empty {
+  display: none;
+}
+
+.account-link {
+  border: 0;
+  background: transparent;
+  color: var(--green-accent);
+  padding: 6px;
+}
+
+.account-note {
+  margin-top: 24px;
+  line-height: 1.8;
+}
+
+.account-profile {
+  padding: 28px;
+}
+
+.account-profile-heading,
+.account-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.account-profile-heading h2 {
+  margin: 0;
+}
+
+#account-name,
+#sidebar-name,
+#sidebar-bio {
+  display: block;
+  max-width: 130px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 760px) {
+  .auth-card {
+    padding: 28px 22px;
+  }
+
+  .topbar-right {
+    flex-wrap: wrap;
+  }
+
+  #account-name {
+    max-width: 90px;
+  }
+}

@@ -1,0 +1,8 @@
+[Unit]
+Description=Renew short-lived IP HTTPS certificate
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/opt/certbot/bin/certbot renew --quiet
