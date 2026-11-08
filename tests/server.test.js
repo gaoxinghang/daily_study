@@ -65,6 +65,15 @@ test("默认监听所有 IPv4 接口并只提供白名单静态文件", async (c
   const css_response = await fetch(`${base_url}/styles.css`);
   assert.match(css_response.headers.get("content-type"), /text\/css/);
   await css_response.text();
+  for (const [path, content_type] of [
+    ["/space.css", "text/css"],
+    ["/nebula.js", "text/javascript"],
+  ]) {
+    const asset = await fetch(`${base_url}${path}`);
+    assert.equal(asset.status, 200);
+    assert.ok(asset.headers.get("content-type").startsWith(content_type));
+    assert.ok((await asset.text()).length > 0);
+  }
   for (const path of [
     "/.env", "/.git/config", "/server.js", "/README.md",
     "/api.js", "/auth.js", "/database.js", "/package.json",

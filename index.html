@@ -6,7 +6,7 @@
       name="viewport"
       content="width=device-width, initial-scale=1, viewport-fit=cover"
     />
-    <meta name="theme-color" content="#f4f6f0" id="theme-color-meta" />
+    <meta name="theme-color" content="#070d18" id="theme-color-meta" />
     <meta
       name="description"
       content="拾光，每天留一点时间给成长。安排学习计划，开启专注计时。"
@@ -14,14 +14,15 @@
     <title>拾光 · 每日学习</title>
     <link
       rel="icon"
-      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='12' fill='%232c5947'/%3E%3Cpath d='M12 28V13c9-3 18 2 14 10-3 5-8 1-6-3' fill='none' stroke='%23e7edbe' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='12' fill='%23070d18'/%3E%3Cpath d='M12 28V13c9-3 18 2 14 10-3 5-8 1-6-3' fill='none' stroke='%23b0eaff' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E"
     />
     <link rel="stylesheet" href="styles.css" />
     <link rel="stylesheet" href="account.css" />
+    <link rel="stylesheet" href="space.css" />
     <script type="module" src="app.js"></script>
   </head>
   <body data-account="loading">
-    <!-- 流光粒子画布与极光背景层 -->
+    <!-- GPU 粒子舞台；不可用时保留 CSS 星云背景。 -->
     <div class="ambient-stage" aria-hidden="true">
       <div class="aurora-orb orb-emerald"></div>
       <div class="aurora-orb orb-amber"></div>
@@ -30,8 +31,49 @@
     </div>
     <canvas id="ambient-canvas" aria-hidden="true"></canvas>
 
+    <a class="skip-link auth-skip" href="#auth-username">跳到账号登录</a>
+    <a class="skip-link workspace-skip" href="#main-content">跳到学习内容</a>
+    <div class="space-hud" aria-label="粒子渲染状态">
+      <div class="hud-cell"><span class="signal-dot"></span>
+        <span id="render-state">INITIALIZING</span></div>
+      <div class="hud-cell"><span class="hud-label">FPS</span>
+        <output id="render-fps" aria-live="off">—</output></div>
+      <div class="hud-cell"><span class="hud-label">PARTICLES</span>
+        <output id="particle-count" aria-live="off">—</output></div>
+      <div class="hud-cell hud-coordinates">
+        <span class="hud-label">X / Y</span>
+        <output id="space-coordinates" aria-live="off">0.00 / 0.00</output></div>
+      <button id="motion-toggle" type="button" aria-pressed="false"
+        aria-label="暂停粒子动画">Ⅱ 暂停动态</button>
+    </div>
+    <div class="scroll-rail" aria-hidden="true">
+      <span id="scroll-progress"></span>
+    </div>
+
     <section class="auth-screen" aria-labelledby="auth-title">
+      <header class="portal-header">
+        <a class="portal-brand" href="./" aria-label="拾光首页">
+          <span class="orbit-logo" aria-hidden="true">✳</span>
+          SHIGUANG<span class="portal-brand-cn">拾光</span>
+        </a>
+        <span class="portal-edition">PERSONAL UNIVERSE &nbsp; / &nbsp; VOL. 02</span>
+      </header>
+      <div class="portal-story">
+        <p class="space-kicker"><span></span> A SPACE TO BECOME</p>
+        <h2>Find your<br /><em>own orbit.</em><span class="title-star" aria-hidden="true">✳</span></h2>
+        <p class="portal-description">在浩瀚里，找到自己的节奏。<br />
+          把每一次专注，变成向前的一束光。</p>
+        <div class="portal-chapters">
+          <span><b>01</b> PLAN</span><i></i>
+          <span><b>02</b> FOCUS</span><i></i>
+          <span><b>03</b> GROW</span>
+        </div>
+        <span class="field-caption">FIG. 001 — THE FIELD OF POSSIBILITIES</span>
+      </div>
       <div class="auth-card spotlight-card">
+        <div class="portal-card-heading">
+          <span>ENTER YOUR ORBIT</span><span>↗</span>
+        </div>
         <div class="auth-brand-badge">
           <span class="brand-mark">
             <svg viewBox="0 0 40 40" aria-hidden="true">
@@ -39,10 +81,10 @@
               <circle cx="28" cy="10" r="2" />
             </svg>
           </span>
-          <p class="eyebrow">SHIGUANG · YOUR PERSONAL SPACE</p>
+          <p class="eyebrow">YOUR PRIVATE SPACE / 01</p>
         </div>
         <h1 id="auth-title">欢迎回到拾光</h1>
-        <p>让每一份成长，化作星火，跟随你去往不同设备。</p>
+        <p>连接你的学习宇宙，让每一份积累都有迹可循。</p>
         <form id="auth-form" class="account-form">
           <label>用户名
             <input id="auth-username" name="username" required
@@ -73,6 +115,10 @@
         <p class="account-note">同一账号仅允许一个登录会话。<br />
           在其他设备或浏览器登录后，旧会话会自动退出。</p>
         <noscript>请启用 JavaScript 后使用账号和云端学习功能。</noscript>
+      </div>
+      <div class="portal-footnote">
+        <span>LESS NOISE. MORE POSSIBILITY.</span>
+        <span>移动光标，扰动你的星云 &nbsp; ↗</span>
       </div>
     </section>
 
@@ -174,9 +220,9 @@
             <circle cx="28" cy="10" r="2" />
           </svg>
         </span>
-        <span>拾光<small>DAILY GROWTH</small></span>
+        <span>拾光<small>SHIGUANG / ORBIT</small></span>
       </a>
-      <p class="nav-label">我的学习空间</p>
+      <p class="nav-label">MISSION CONTROL / 控制台</p>
       <nav aria-label="主导航">
         <a
           class="nav-item active"
@@ -203,7 +249,7 @@
       <div class="sidebar-note">
         <svg class="icon"><use href="#icon-leaf" /></svg>
         <p>慢慢来，<br />每一步都算数。</p>
-        <span>A LITTLE BETTER, EVERY DAY.</span>
+        <span>SMALL STEPS. INFINITE SPACE.</span>
       </div>
       <div class="sidebar-bottom">
         <span class="avatar" id="sidebar-avatar">拾</span>
@@ -215,7 +261,7 @@
       </div>
     </aside>
 
-    <main id="main-content">
+    <main id="main-content" tabindex="-1">
       <header class="topbar">
         <div class="breadcrumb">
           <span>我的空间</span>
@@ -235,11 +281,11 @@
             class="theme-toggle-btn"
             id="theme-toggle"
             type="button"
-            aria-label="切换晨曦或静夜模式"
-            title="切换晨曦/静夜模式"
+            aria-label="切换深海蓝或曜石黑主题"
+            title="切换深海蓝/曜石黑主题"
           >
             <svg class="icon"><use id="theme-icon" href="#icon-moon" /></svg>
-            <span id="theme-label">静夜书房</span>
+            <span id="theme-label">曜石黑</span>
           </button>
         </div>
       </header>
@@ -247,7 +293,7 @@
       <div id="view-today" class="page-view active">
       <section class="page-heading">
         <div>
-          <div class="eyebrow">MAKE TIME FOR YOURSELF</div>
+          <div class="eyebrow">YOUR DAILY MISSION / 今日航程</div>
           <h1>今天，也向前一点<span>。</span></h1>
           <p>把想做的事写下来，把专注的时间留给自己。</p>
         </div>
@@ -260,66 +306,21 @@
       <section class="hero spotlight-card" aria-label="今日寄语">
         <div class="hero-copy">
           <span class="hero-label">
-            <span></span> YOUR DAILY LITTLE PROGRESS
+            <span></span> FOCUS IS YOUR SUPERPOWER
           </span>
-          <h2>不必一下子很厉害，<br />只要每天多一点热爱。</h2>
+          <h2>Less noise.<br /><em>More focus.</em></h2>
           <p>一次专注，一点积累。你付出的时间，终会化作漫天星火。</p>
           <div class="hero-bottom">
-            <span class="hero-line"></span>让成长，在日常里发生
+            <span class="hero-line"></span>一次专注，靠近一点自己的宇宙
           </div>
         </div>
-        <svg
-          class="hero-art"
-          viewBox="0 0 360 250"
-          fill="none"
-          aria-hidden="true"
-        >
-          <circle cx="210" cy="119" r="93" fill="#dce5ce" opacity="0.7" />
-          <circle cx="285" cy="51" r="21" fill="#e5c97c" opacity="0.85" />
-          <path d="M58 211h265" stroke="#a4b59b" stroke-linecap="round" />
-          <path d="m94 191 81-9 72 12-79 10Z" fill="#d1b581" />
-          <path d="M94 191v15l73 12 80-12v-12l-79 10Z" fill="#f7f4e9" />
-          <path d="m94 206 73 12 80-12" stroke="#b29b75" stroke-width="3" />
-          <path d="m106 176 81-9 66 11-80 12Z" fill="#78917b" />
-          <path d="M106 176v13l67 11 80-11v-11l-80 12Z" fill="#f6f5ed" />
-          <path d="m106 189 67 11 80-11" stroke="#52745d" stroke-width="3" />
-          <path
-            d="M208 130c-3-32 4-68 22-89m-21 75c-12-15-21-21-35-26m37 11c9-13 19-21 34-23"
-            stroke="#567352"
-            stroke-width="3"
-            stroke-linecap="round"
-          />
-          <path
-            d="M213 75c-23-4-30-15-27-31 24 0 32 11 27 31Z"
-            fill="#6f8c64"
-          />
-          <path d="M221 58c-6-25 4-39 22-42 9 23 0 38-22 42Z" fill="#456e50" />
-          <path d="M215 98c7-26 22-35 43-29-4 22-19 32-43 29Z" fill="#78965f" />
-          <path d="M195 103c-22 5-39-5-44-23 24-8 40 3 44 23Z" fill="#4c7656" />
-          <path d="M182 125h57l-7 45c-9 8-33 8-43 0Z" fill="#cbaa7d" />
-          <path d="M181 125c0-5 59-5 59 0v8c-9 5-49 5-59 0Z" fill="#dbbe94" />
-          <path
-            d="M197 143v18m7-18v21m8-21v21m8-22v19"
-            stroke="#b79468"
-            stroke-linecap="round"
-          />
-          <path d="M276 174h25v28c-5 6-19 6-25 0Z" fill="#78917b" />
-          <path
-            d="M301 178c19-3 17 22 0 18"
-            stroke="#78917b"
-            stroke-width="5"
-          />
-          <ellipse cx="288.5" cy="174" rx="12.5" ry="3" fill="#45674e" />
-          <path
-            d="M284 161c-7-9 5-11 1-20m9 20c-7-9 5-11 1-20"
-            stroke="#9eae95"
-            stroke-width="2"
-            stroke-linecap="round"
-          />
-          <path d="m102 90 3 7 7 3-7 3-3 7-3-7-7-3 7-3Z" fill="#b2bf98" />
-          <circle cx="306" cy="115" r="3" fill="#9fae83" />
-          <circle cx="123" cy="142" r="2" fill="#9fae83" />
-        </svg>
+        <div class="orbit-diagram" aria-hidden="true">
+          <div class="orbit-ring orbit-ring-one"></div>
+          <div class="orbit-ring orbit-ring-two"></div>
+          <div class="orbit-core">✳</div>
+          <span class="orbit-axis">X ——— Y / Z</span>
+          <span class="orbit-annotation">PERSONAL ORBIT<br />∞ POSSIBILITIES</span>
+        </div>
       </section>
 
       <section class="stats" aria-label="今日学习概览">

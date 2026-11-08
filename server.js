@@ -30,6 +30,8 @@ const public_files = new Map([
   ["/model.js", ["model.js", "text/javascript; charset=utf-8"]],
   ["/cloud.js", ["cloud.js", "text/javascript; charset=utf-8"]],
   ["/account.css", ["account.css", "text/css; charset=utf-8"]],
+  ["/space.css", ["space.css", "text/css; charset=utf-8"]],
+  ["/nebula.js", ["nebula.js", "text/javascript; charset=utf-8"]],
   ["/legacy-import.html", ["legacy-import.html", "text/html; charset=utf-8"]],
   ["/legacy-import.js", ["legacy-import.js", "text/javascript; charset=utf-8"]],
 ]);
