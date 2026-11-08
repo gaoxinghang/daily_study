@@ -26,6 +26,7 @@ let confirm_callback = null;
 let current_view = location.hash === "#history" ? "history" : "today";
 let trigger_completion_burst = null;
 let task_drag = null;
+let drag_frame = 0;
 let drag_scroll_frame = 0;
 
 const category_classes = {
@@ -770,6 +771,12 @@ find("#task-form").addEventListener("submit", (event) => {
   show_toast("新目标已加入计划，准备好就开始吧。");
 });
 
+function prefers_reduced_motion() {
+  /** 读取系统动态效果偏好；即使减少动画也保留拖拽能力。 */
+  return matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
+
 function task_cards() {
   /** 返回当前列表中的任务卡片，按界面顺序排列。 */
   return [...find_all("#task-list .task-card")];
@@ -779,12 +786,6 @@ function task_cards() {
 function task_card_by_id(id) {
   /** 按标识查找任务卡片，避免把标识拼进选择器。 */
   return task_cards().find((card) => card.dataset.id === id) || null;
-}
-
-
-function visible_task_ids() {
-  /** 读取界面中任务卡片的当前顺序。 */
-  return task_cards().map((card) => card.dataset.id);
 }
 
 
@@ -810,16 +811,27 @@ function focus_task_handle(id) {
 
 
 function cleanup_task_drag() {
-  /** 清除拖拽状态与全局监听，避免残留样式。 */
+  /** 移除浮层与占位槽，恢复卡片样式并解除全局监听。 */
   if (!task_drag) return;
-  const { card, handle, pointer_id } = task_drag;
+  const { card, handle, pointer_id, placeholder } = task_drag;
   window.removeEventListener("pointermove", move_task_drag, false);
   window.removeEventListener("pointerup", end_task_drag);
   window.removeEventListener("pointercancel", cancel_task_drag);
   window.removeEventListener("blur", cancel_task_drag);
+  cancelAnimationFrame(drag_frame);
   cancelAnimationFrame(drag_scroll_frame);
+  drag_frame = 0;
   drag_scroll_frame = 0;
-  card.classList.remove("is-dragging");
+  if (placeholder) {
+    if (placeholder.parentNode) placeholder.replaceWith(card);
+    else card.remove();
+  }
+  card.classList.remove("is-floating");
+  card.style.width = "";
+  card.style.height = "";
+  card.style.left = "";
+  card.style.top = "";
+  card.style.transform = "";
   find("#task-list")?.classList.remove("is-reordering");
   document.body.classList.remove("task-dragging");
   try {
@@ -839,48 +851,172 @@ function abort_task_drag() {
 }
 
 
-function place_dragged_card(y) {
-  /** 根据指针位置把拖拽中的卡片插入最近的空位。 */
-  const list = find("#task-list");
-  const others = task_cards().filter((card) => card !== task_drag.card);
-  const next = others.find((card) => {
-    const rect = card.getBoundingClientRect();
-    return y < rect.top + rect.height / 2;
-  });
-  if (next) {
-    if (task_drag.card.nextElementSibling !== next) {
-      list.insertBefore(task_drag.card, next);
+function dragged_task_order() {
+  /** 按占位槽位置生成提交顺序，忽略正在悬浮的卡片。 */
+  const drag = task_drag;
+  const ids = [];
+  for (const element of find("#task-list").children) {
+    if (element === drag.placeholder) ids.push(drag.id);
+    else if (element !== drag.card && element.dataset?.id) {
+      ids.push(element.dataset.id);
     }
-  } else if (list.lastElementChild !== task_drag.card) {
-    list.append(task_drag.card);
   }
+  return ids;
+}
+
+
+function animate_reflow(cards, positions) {
+  /** 用 FLIP 让让位的卡片平滑滑向新位置。 */
+  if (prefers_reduced_motion()) return;
+  for (const card of cards) {
+    const delta = positions.get(card) - card.getBoundingClientRect().top;
+    if (Math.abs(delta) < 1) continue;
+    card.animate(
+      [
+        { transform: `translateY(${delta}px)` },
+        { transform: "translateY(0)" },
+      ],
+      { duration: 220, easing: "cubic-bezier(0.22, 0.61, 0.36, 1)" },
+    );
+  }
+}
+
+
+function refresh_drag_targets() {
+  /** 用不受动画影响的布局坐标缓存卡片中线，减少布局读取。 */
+  const drag = task_drag;
+  if (!drag) return;
+  const origins = new Map();
+  drag.targets = task_cards()
+    .filter((card) => card !== drag.card)
+    .map((card) => {
+      const parent = card.offsetParent || document.body;
+      if (!origins.has(parent)) {
+        origins.set(parent, parent.getBoundingClientRect().top + scrollY);
+      }
+      return {
+        card,
+        middle: origins.get(parent) + card.offsetTop + card.offsetHeight / 2,
+      };
+    });
+}
+
+
+function place_drag_placeholder(y) {
+  /** 根据指针位置移动占位槽，其他卡片平滑让位。 */
+  const drag = task_drag;
+  const list = find("#task-list");
+  const pointer = y + scrollY;
+  const entry = drag.targets.find((item) => pointer < item.middle);
+  const next = entry ? entry.card : null;
+  const settled = next
+    ? drag.placeholder.nextElementSibling === next
+    : list.lastElementChild === drag.placeholder;
+  if (settled) return;
+  const cards = drag.targets.map((entry) => entry.card);
+  const positions = new Map(
+    cards.map((card) => [card, card.getBoundingClientRect().top]),
+  );
+  if (next) list.insertBefore(drag.placeholder, next);
+  else list.append(drag.placeholder);
+  animate_reflow(cards, positions);
+  refresh_drag_targets();
+}
+
+
+function render_task_drag(now) {
+  /** 平滑跟随指针，并给出轻微抬升与倾斜反馈。 */
+  if (!task_drag?.active || task_drag.dropping) {
+    drag_frame = 0;
+    return;
+  }
+  const drag = task_drag;
+  const delta = drag.frame_time
+    ? Math.min((now - drag.frame_time) / 16.67, 3)
+    : 1;
+  drag.frame_time = now;
+  const ease = drag.reduce ? 1 : 1 - Math.pow(0.66, delta);
+  drag.render_x += (drag.target_x - drag.render_x) * ease;
+  drag.render_y += (drag.target_y - drag.render_y) * ease;
+  drag.lift = drag.reduce ? 1 : Math.min(1, drag.lift + delta * 0.14);
+  drag.velocity_x *= Math.pow(0.84, delta);
+  const tilt = drag.reduce
+    ? 0
+    : Math.max(-3.5, Math.min(3.5, drag.velocity_x * 0.35)) * drag.lift;
+  const scale = drag.reduce ? 1 : 1 + drag.lift * 0.028;
+  drag.card.style.transform =
+    `translate3d(${drag.render_x}px, ${drag.render_y}px, 0)` +
+    ` rotate(${tilt}deg) scale(${scale})`;
+  drag_frame = requestAnimationFrame(render_task_drag);
+}
+
+
+function start_task_drag() {
+  /** 抬起卡片、留下占位槽，并启动跟随与自动滚动循环。 */
+  const drag = task_drag;
+  const card = drag.card;
+  const rect = card.getBoundingClientRect();
+  drag.home_rect = rect;
+  drag.offset_x = drag.start_x - rect.left;
+  drag.offset_y = drag.start_y - rect.top;
+  drag.render_x = 0;
+  drag.render_y = 0;
+  drag.target_x = 0;
+  drag.target_y = 0;
+  drag.lift = 0;
+  drag.frame_time = 0;
+  drag.reduce = prefers_reduced_motion();
+  drag.placeholder = document.createElement("div");
+  drag.placeholder.className = "drag-placeholder";
+  drag.placeholder.style.height = `${rect.height}px`;
+  drag.placeholder.setAttribute("aria-hidden", "true");
+  card.before(drag.placeholder);
+  card.style.width = `${rect.width}px`;
+  card.style.height = `${rect.height}px`;
+  card.style.left = `${rect.left}px`;
+  card.style.top = `${rect.top}px`;
+  card.classList.add("is-floating");
+  // 面板的 backdrop-filter 会成为 fixed 的包含块，移到 body 才能跟随视口。
+  document.body.append(card);
+  refresh_drag_targets();
+  find("#task-list").classList.add("is-reordering");
+  document.body.classList.add("task-dragging");
+  drag.active = true;
+  drag_frame = requestAnimationFrame(render_task_drag);
+  drag_scroll_frame = requestAnimationFrame(auto_scroll_task_drag);
 }
 
 
 function move_task_drag(event) {
-  /** 跟随指针移动卡片，靠近视口边缘时自动滚动。 */
+  /** 更新浮层目标位置并让占位槽跟随指针。 */
   if (!task_drag || event.pointerId !== task_drag.pointer_id) return;
-  if (!task_drag.active) {
+  if (event.pointerType === "mouse" && event.buttons === 0) {
+    cancel_task_drag(event);
+    return;
+  }
+  const drag = task_drag;
+  if (!drag.active) {
     const distance = Math.hypot(
-      event.clientX - task_drag.start_x,
-      event.clientY - task_drag.start_y,
+      event.clientX - drag.start_x,
+      event.clientY - drag.start_y,
     );
     if (distance < 5) return;
-    task_drag.active = true;
-    task_drag.card.classList.add("is-dragging");
-    find("#task-list").classList.add("is-reordering");
-    document.body.classList.add("task-dragging");
-    drag_scroll_frame = requestAnimationFrame(auto_scroll_task_drag);
+    start_task_drag();
   }
+  if (drag.dropping) return;
   event.preventDefault();
-  task_drag.last_y = event.clientY;
-  place_dragged_card(event.clientY);
+  drag.velocity_x = event.clientX - drag.last_x;
+  drag.last_x = event.clientX;
+  drag.last_y = event.clientY;
+  drag.target_x = event.clientX - drag.offset_x - drag.home_rect.left;
+  drag.target_y = event.clientY - drag.offset_y - drag.home_rect.top;
+  place_drag_placeholder(event.clientY);
 }
 
 
 function auto_scroll_task_drag() {
-  /** 指针停在视口边缘时持续滚动，长列表也能拖到目标位置。 */
-  if (!task_drag?.active) return;
+  /** 指针停在视口边缘时持续滚动，并同步占位位置。 */
+  if (!task_drag?.active || task_drag.dropping) return;
   const y = task_drag.last_y;
   const edge = 96;
   let delta = 0;
@@ -890,31 +1026,53 @@ function auto_scroll_task_drag() {
   }
   if (delta) {
     window.scrollBy(0, delta);
-    place_dragged_card(y);
+    place_drag_placeholder(y);
   }
   drag_scroll_frame = requestAnimationFrame(auto_scroll_task_drag);
 }
 
 
-function end_task_drag(event) {
-  /** 松开指针后保存新顺序；未真正拖动时保持原样。 */
+async function end_task_drag(event) {
+  /** 让浮层落回占位槽，再提交新顺序。 */
   if (!task_drag || event.pointerId !== task_drag.pointer_id) return;
-  const { id, active } = task_drag;
+  const drag = task_drag;
+  if (!drag.active) {
+    cleanup_task_drag();
+    return;
+  }
+  if (drag.dropping) return;
+  drag.dropping = true;
+  const ids = dragged_task_order();
+  const slot = drag.placeholder.getBoundingClientRect();
+  const dx = slot.left - drag.home_rect.left;
+  const dy = slot.top - drag.home_rect.top;
+  if (!drag.reduce) {
+    const animation = drag.card.animate([
+      { transform: getComputedStyle(drag.card).transform },
+      { transform: `translate3d(${dx}px, ${dy}px, 0) rotate(0deg) scale(1)` },
+    ], {
+      duration: 200,
+      easing: "cubic-bezier(0.22, 1, 0.36, 1)",
+      fill: "forwards",
+    });
+    const timeout = new Promise((resolve) => setTimeout(resolve, 500));
+    await Promise.race([animation.finished.catch(() => {}), timeout]);
+  }
+  if (task_drag !== drag) return;
   cleanup_task_drag();
-  if (!active) return;
-  const changed = persist_task_order(visible_task_ids());
+  const changed = persist_task_order(ids);
   if (!changed) last_signature = "";
   render();
-  focus_task_handle(id);
   if (changed) show_toast("任务顺序已更新。");
 }
 
 
 function cancel_task_drag(event) {
-  /** 指针被系统取消或窗口失焦时恢复原顺序。 */
+  /** 指针被系统取消或窗口失焦时放弃本次排序。 */
   if (!task_drag) return;
   const pointer_id = event?.pointerId;
   if (pointer_id !== undefined && pointer_id !== task_drag.pointer_id) return;
+  if (task_drag.dropping) return;
   cleanup_task_drag();
   last_signature = "";
   render();
@@ -953,13 +1111,23 @@ find("#task-list").addEventListener("pointerdown", (event) => {
     pointer_id: event.pointerId,
     start_x: event.clientX,
     start_y: event.clientY,
+    last_x: event.clientX,
     last_y: event.clientY,
+    velocity_x: 0,
     active: false,
+    dropping: false,
   };
   window.addEventListener("pointermove", move_task_drag, { passive: false });
   window.addEventListener("pointerup", end_task_drag);
   window.addEventListener("pointercancel", cancel_task_drag);
   window.addEventListener("blur", cancel_task_drag);
+});
+
+
+window.addEventListener("keydown", (event) => {
+  if (event.key !== "Escape" || !task_drag?.active) return;
+  event.preventDefault();
+  cancel_task_drag();
 });
 
 
