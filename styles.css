@@ -306,8 +306,16 @@ select {
   outline-offset: 3px;
 }
 
-:focus-visible {
+/* 焦点环只属于可操作控件；容器由脚本聚焦时不应画出边框。 */
+:is(a, button, input, select, textarea, summary):focus-visible {
   outline: 2px solid var(--green-accent);
+}
+
+main:focus,
+main:focus-visible,
+[tabindex="-1"]:focus,
+[tabindex="-1"]:focus-visible {
+  outline: none;
 }
 
 .svg-library {
