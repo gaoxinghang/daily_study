@@ -8,6 +8,7 @@ import {
   toggle_timer,
   update_task,
   reset_task,
+  apply_task_order,
 } from "./model.js";
 
 import { create_cloud } from "./cloud.js";
@@ -24,6 +25,8 @@ let last_signature = "";
 let confirm_callback = null;
 let current_view = location.hash === "#history" ? "history" : "today";
 let trigger_completion_burst = null;
+let task_drag = null;
+let drag_scroll_frame = 0;
 
 const category_classes = {
   阅读: "",
@@ -178,8 +181,16 @@ function task_markup(task, now) {
   const id = escape_html(task.id);
   const title = escape_html(task.title);
   const action = running ? "暂停" : started ? "继续" : "开始";
+  const sortable = state.tasks.length > 1;
+  const drag_handle = sortable
+    ? `<button class="drag-handle" type="button"
+        aria-label="拖动调整「${title}」的顺序，或按上下方向键移动"
+        title="拖动排序，或按 ↑ ↓ 调整顺序">${icon("grip")}</button>`
+    : "";
+
   return `
     <article class="${classes.join(" ")}" data-id="${id}">
+      ${drag_handle}
       <button class="task-select" type="button" data-action="select"
         aria-label="选择任务：${title}" aria-pressed="${selected}">
         <span class="task-indicator">
@@ -225,8 +236,17 @@ function task_markup(task, now) {
     </article>`;
 }
 
+function is_task_visible(task) {
+  /** 判断任务是否符合当前筛选条件。 */
+  if (current_filter === "pending") return !task.completed;
+  if (current_filter === "done") return task.completed;
+  return true;
+}
+
+
 function render_tasks(now = Date.now()) {
   /** 根据筛选条件渲染任务列表，并避免每秒重建焦点元素。 */
+  abort_task_drag();
   const total_count = state.tasks.length;
   const done_count = state.tasks.filter((task) => task.completed).length;
   const pending_count = total_count - done_count;
@@ -238,11 +258,7 @@ function render_tasks(now = Date.now()) {
   if (count_pending) count_pending.textContent = pending_count;
   if (count_done) count_done.textContent = done_count;
 
-  const tasks = state.tasks.filter((task) => {
-    if (current_filter === "pending") return !task.completed;
-    if (current_filter === "done") return task.completed;
-    return true;
-  });
+  const tasks = state.tasks.filter(is_task_visible);
   if (tasks.length) {
     find("#task-list").innerHTML = tasks
       .map((task) => task_markup(task, now))
@@ -753,6 +769,210 @@ find("#task-form").addEventListener("submit", (event) => {
   find("#task-dialog").close();
   show_toast("新目标已加入计划，准备好就开始吧。");
 });
+
+function task_cards() {
+  /** 返回当前列表中的任务卡片，按界面顺序排列。 */
+  return [...find_all("#task-list .task-card")];
+}
+
+
+function task_card_by_id(id) {
+  /** 按标识查找任务卡片，避免把标识拼进选择器。 */
+  return task_cards().find((card) => card.dataset.id === id) || null;
+}
+
+
+function visible_task_ids() {
+  /** 读取界面中任务卡片的当前顺序。 */
+  return task_cards().map((card) => card.dataset.id);
+}
+
+
+function persist_task_order(ids) {
+  /** 合并可见顺序并保存；顺序未变化时不产生多余同步。 */
+  const ordered = apply_task_order(state.tasks, ids);
+  if (!ordered) return false;
+  const changed = ordered.some((task, index) => {
+    return task.id !== state.tasks[index].id;
+  });
+  if (!changed) return false;
+  state.tasks = ordered;
+  save_state();
+  return true;
+}
+
+
+function focus_task_handle(id) {
+  /** 排序后把焦点还给同一任务的手柄，便于连续调整。 */
+  const handle = task_card_by_id(id)?.querySelector(".drag-handle");
+  handle?.focus({ preventScroll: true });
+}
+
+
+function cleanup_task_drag() {
+  /** 清除拖拽状态与全局监听，避免残留样式。 */
+  if (!task_drag) return;
+  const { card, handle, pointer_id } = task_drag;
+  window.removeEventListener("pointermove", move_task_drag, false);
+  window.removeEventListener("pointerup", end_task_drag);
+  window.removeEventListener("pointercancel", cancel_task_drag);
+  window.removeEventListener("blur", cancel_task_drag);
+  cancelAnimationFrame(drag_scroll_frame);
+  drag_scroll_frame = 0;
+  card.classList.remove("is-dragging");
+  find("#task-list")?.classList.remove("is-reordering");
+  document.body.classList.remove("task-dragging");
+  try {
+    if (handle.hasPointerCapture?.(pointer_id)) {
+      handle.releasePointerCapture(pointer_id);
+    }
+  } catch {
+    // 指针已释放时忽略，拖拽状态仍会清理。
+  }
+  task_drag = null;
+}
+
+
+function abort_task_drag() {
+  /** 列表即将重建时放弃进行中的拖拽，避免操作失效节点。 */
+  if (task_drag) cleanup_task_drag();
+}
+
+
+function place_dragged_card(y) {
+  /** 根据指针位置把拖拽中的卡片插入最近的空位。 */
+  const list = find("#task-list");
+  const others = task_cards().filter((card) => card !== task_drag.card);
+  const next = others.find((card) => {
+    const rect = card.getBoundingClientRect();
+    return y < rect.top + rect.height / 2;
+  });
+  if (next) {
+    if (task_drag.card.nextElementSibling !== next) {
+      list.insertBefore(task_drag.card, next);
+    }
+  } else if (list.lastElementChild !== task_drag.card) {
+    list.append(task_drag.card);
+  }
+}
+
+
+function move_task_drag(event) {
+  /** 跟随指针移动卡片，靠近视口边缘时自动滚动。 */
+  if (!task_drag || event.pointerId !== task_drag.pointer_id) return;
+  if (!task_drag.active) {
+    const distance = Math.hypot(
+      event.clientX - task_drag.start_x,
+      event.clientY - task_drag.start_y,
+    );
+    if (distance < 5) return;
+    task_drag.active = true;
+    task_drag.card.classList.add("is-dragging");
+    find("#task-list").classList.add("is-reordering");
+    document.body.classList.add("task-dragging");
+    drag_scroll_frame = requestAnimationFrame(auto_scroll_task_drag);
+  }
+  event.preventDefault();
+  task_drag.last_y = event.clientY;
+  place_dragged_card(event.clientY);
+}
+
+
+function auto_scroll_task_drag() {
+  /** 指针停在视口边缘时持续滚动，长列表也能拖到目标位置。 */
+  if (!task_drag?.active) return;
+  const y = task_drag.last_y;
+  const edge = 96;
+  let delta = 0;
+  if (y < edge) delta = -Math.ceil((edge - y) / 5);
+  else if (y > innerHeight - edge) {
+    delta = Math.ceil((y - innerHeight + edge) / 5);
+  }
+  if (delta) {
+    window.scrollBy(0, delta);
+    place_dragged_card(y);
+  }
+  drag_scroll_frame = requestAnimationFrame(auto_scroll_task_drag);
+}
+
+
+function end_task_drag(event) {
+  /** 松开指针后保存新顺序；未真正拖动时保持原样。 */
+  if (!task_drag || event.pointerId !== task_drag.pointer_id) return;
+  const { id, active } = task_drag;
+  cleanup_task_drag();
+  if (!active) return;
+  const changed = persist_task_order(visible_task_ids());
+  if (!changed) last_signature = "";
+  render();
+  focus_task_handle(id);
+  if (changed) show_toast("任务顺序已更新。");
+}
+
+
+function cancel_task_drag(event) {
+  /** 指针被系统取消或窗口失焦时恢复原顺序。 */
+  if (!task_drag) return;
+  const pointer_id = event?.pointerId;
+  if (pointer_id !== undefined && pointer_id !== task_drag.pointer_id) return;
+  cleanup_task_drag();
+  last_signature = "";
+  render();
+}
+
+
+function reorder_by_keyboard(id, offset) {
+  /** 用方向键在当前可见顺序内上移或下移一位。 */
+  const ids = state.tasks.filter(is_task_visible).map((task) => task.id);
+  const index = ids.indexOf(id);
+  const target = index + offset;
+  if (index < 0 || target < 0 || target >= ids.length) return;
+  [ids[index], ids[target]] = [ids[target], ids[index]];
+  if (!persist_task_order(ids)) return;
+  render();
+  focus_task_handle(id);
+  show_toast(offset < 0 ? "已上移一位。" : "已下移一位。");
+}
+
+
+find("#task-list").addEventListener("pointerdown", (event) => {
+  const handle = event.target.closest(".drag-handle");
+  const card = handle?.closest(".task-card");
+  if (!card) return;
+  if (event.pointerType === "mouse" && event.button !== 0) return;
+  if (task_drag) return;
+  try {
+    handle.setPointerCapture?.(event.pointerId);
+  } catch {
+    // 合成事件或已结束的指针无法捕获，仍可继续拖动。
+  }
+  task_drag = {
+    id: card.dataset.id,
+    card,
+    handle,
+    pointer_id: event.pointerId,
+    start_x: event.clientX,
+    start_y: event.clientY,
+    last_y: event.clientY,
+    active: false,
+  };
+  window.addEventListener("pointermove", move_task_drag, { passive: false });
+  window.addEventListener("pointerup", end_task_drag);
+  window.addEventListener("pointercancel", cancel_task_drag);
+  window.addEventListener("blur", cancel_task_drag);
+});
+
+
+find("#task-list").addEventListener("keydown", (event) => {
+  const handle = event.target.closest(".drag-handle");
+  if (!handle) return;
+  const offset = event.key === "ArrowUp" ? -1
+    : event.key === "ArrowDown" ? 1 : 0;
+  if (!offset) return;
+  event.preventDefault();
+  reorder_by_keyboard(handle.closest(".task-card").dataset.id, offset);
+});
+
 
 find("#task-list").addEventListener("click", (event) => {
   const button = event.target.closest("button[data-action]");

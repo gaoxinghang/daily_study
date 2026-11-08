@@ -832,6 +832,71 @@ html[data-theme="dark"] .task-actions .toggle-task {
   opacity: 0.75;
 }
 
+.drag-handle {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 46px;
+  margin: 0 -6px 0 -9px;
+  padding: 0;
+  flex-shrink: 0;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: #7b90aa;
+  opacity: 0.5;
+  cursor: grab;
+  touch-action: none;
+  transition:
+    opacity 0.2s ease,
+    color 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.drag-handle .icon {
+  width: 16px;
+  height: 16px;
+}
+
+.task-card:hover .drag-handle,
+.drag-handle:focus-visible {
+  opacity: 1;
+}
+
+.drag-handle:hover {
+  color: #b9ecff;
+  background: #8bdeff10;
+}
+
+.task-card.is-dragging,
+.task-card.is-dragging:hover {
+  transform: scale(1.012);
+  border-color: #8bdeffaa;
+  background: #12253b;
+  box-shadow:
+    0 20px 45px #0008,
+    0 0 0 1px #8bdeff55,
+    0 0 26px #6edbff14;
+  opacity: 0.97;
+  z-index: 3;
+}
+
+.task-card.is-dragging .drag-handle {
+  color: #c9f3ff;
+  cursor: grabbing;
+  opacity: 1;
+}
+
+.task-list.is-reordering .task-card:not(.is-dragging):hover {
+  transform: none;
+}
+
+body.task-dragging {
+  cursor: grabbing;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
 .timer-panel {
   background: linear-gradient(160deg, #15283acc, #090f1be8);
 }
@@ -1187,6 +1252,26 @@ html[data-theme="dark"] .toast {
 
   .toast {
     bottom: 24px;
+  }
+
+  .drag-handle {
+    width: 24px;
+    height: 42px;
+    margin-left: -4px;
+    opacity: 0.9;
+  }
+}
+
+@media (hover: none) {
+  .drag-handle {
+    opacity: 0.9;
+  }
+}
+
+@media (max-width: 400px) {
+  /* 极窄屏让手柄与任务内容同行，操作按钮仍换到下一行。 */
+  .task-select {
+    flex: 1 1 0;
   }
 }
 

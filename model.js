@@ -217,6 +217,36 @@ export function reset_task(state, id, now = Date.now()) {
   return true;
 }
 
+export function apply_task_order(tasks, visible_ids) {
+  /**
+   * 按给定顺序重排可见任务，未列出的任务保持原位。
+   *
+   * Args:
+   *   tasks: 当前任务数组，不会被修改。
+   *   visible_ids: 可见任务的完整标识顺序，必须唯一且全部存在。
+   *
+   * Returns:
+   *   重排后的新数组；顺序不合法时返回 null。
+   */
+  if (!Array.isArray(tasks) || !Array.isArray(visible_ids)) return null;
+  const by_id = new Map(tasks.map((task) => [task.id, task]));
+  const visible = new Set();
+  for (const id of visible_ids) {
+    if (typeof id !== "string" || visible.has(id) || !by_id.has(id)) {
+      return null;
+    }
+    visible.add(id);
+  }
+  let cursor = 0;
+  return tasks.map((task) => {
+    if (!visible.has(task.id)) return task;
+    const next = by_id.get(visible_ids[cursor]);
+    cursor += 1;
+    return next;
+  });
+}
+
+
 export function is_valid_state(state) {
   /** 校验浏览器缓存，避免损坏或旧格式数据导致页面崩溃。 */
   if (!state || state.version !== 1 || !Array.isArray(state.tasks)) {

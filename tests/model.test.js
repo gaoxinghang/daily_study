@@ -12,6 +12,7 @@ import {
   toggle_timer,
   update_task,
   reset_task,
+  apply_task_order,
   is_valid_state,
 } from "../model.js";
 
@@ -121,6 +122,44 @@ test("午夜前已经结束的计时正确归入昨天", () => {
   assert.equal(state.history[0].focus_ms, 25 * 60_000);
   assert.equal(state.tasks[0].completed, false);
 });
+
+test("拖拽排序重排全部任务且不修改原数组", () => {
+  const state = create_state(start);
+  const original = state.tasks.slice();
+  const ids = state.tasks.map((task) => task.id).reverse();
+  const ordered = apply_task_order(state.tasks, ids);
+  assert.deepEqual(ordered.map((task) => task.id), ids);
+  assert.deepEqual(state.tasks, original);
+  assert.equal(ordered[0], original[2]);
+});
+
+
+test("筛选状态下只重排可见任务，隐藏任务保持原位", () => {
+  const state = create_state(start);
+  const [first, second, third] = state.tasks;
+  const visible = [third.id, first.id];
+  const ordered = apply_task_order(state.tasks, visible);
+  assert.deepEqual(ordered.map((task) => task.id), [
+    third.id,
+    second.id,
+    first.id,
+  ]);
+});
+
+
+test("排序拒绝未知或重复的任务标识", () => {
+  const state = create_state(start);
+  const [first, second] = state.tasks;
+  assert.equal(apply_task_order(state.tasks, [first.id, first.id]), null);
+  assert.equal(apply_task_order(state.tasks, [first.id, "missing-id"]), null);
+  assert.equal(apply_task_order(state.tasks, "not-an-array"), null);
+  // 只给出一个可见任务时它仍在原槽位，不会把隐藏任务挤走。
+  assert.deepEqual(
+    apply_task_order(state.tasks, [second.id]).map((task) => task.id),
+    [first.id, second.id, state.tasks[2].id],
+  );
+});
+
 
 test("损坏缓存、非法溢出日期及非法并发计时不会通过校验", () => {
   assert.equal(is_valid_state(null), false);
