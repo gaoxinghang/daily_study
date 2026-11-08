@@ -628,7 +628,7 @@ main {
   color: var(--green-accent);
 }
 
-.theme-toggle-btn {
+.account-button {
   display: inline-flex;
   align-items: center;
   gap: 7px;
@@ -650,7 +650,7 @@ main {
     box-shadow 0.22s ease;
 }
 
-.theme-toggle-btn:hover {
+.account-button:hover {
   background: var(--paper-elevated);
   border-color: var(--line-strong);
   color: var(--ink);
@@ -658,14 +658,14 @@ main {
   box-shadow: var(--card-hover-shadow);
 }
 
-.theme-toggle-btn .icon {
+.account-button .icon {
   width: 15px;
   height: 15px;
   color: var(--green-accent);
   transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.theme-toggle-btn:hover .icon {
+.account-button:hover .icon {
   transform: rotate(22deg) scale(1.08);
 }
 
@@ -2793,10 +2793,7 @@ body.zen-mode .toast {
 }
 
 @media (max-width: 640px) {
-  #theme-label {
-    display: none;
-  }
-  .theme-toggle-btn {
+  .account-button {
     padding: 6px 9px;
   }
 }

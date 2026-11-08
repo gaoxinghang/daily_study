@@ -17,7 +17,7 @@ const find_all = (selector) => document.querySelectorAll(selector);
 
 let account_ready = false;
 let state = create_state();
-let prefs = { theme: "light", sound: true };
+let prefs = { theme: "dark", sound: true };
 let current_filter = "all";
 let toast_timeout;
 let last_signature = "";
@@ -34,26 +34,14 @@ const category_classes = {
 };
 
 function save_prefs() {
-  /** 将主题与提示音随学习数据一起保存到账号。 */
+  /** 将提示音偏好随学习数据一起保存到账号。 */
   save_state();
 }
 
 function apply_prefs() {
-  /** 同步深海蓝/曜石黑主题与提示音按钮状态。 */
-  const is_dark = prefs.theme === "dark";
-  document.documentElement.dataset.theme = is_dark ? "dark" : "light";
-  const theme_meta = find("#theme-color-meta");
-  if (theme_meta) {
-    theme_meta.setAttribute("content", is_dark ? "#03060d" : "#070d18");
-  }
-  const theme_icon = find("#theme-icon");
-  if (theme_icon) {
-    theme_icon.setAttribute("href", is_dark ? "#icon-sun" : "#icon-moon");
-  }
-  const theme_label = find("#theme-label");
-  if (theme_label) {
-    theme_label.textContent = is_dark ? "深海蓝" : "曜石黑";
-  }
+  /** 固定使用曜石黑，并兼容旧账号的主题字段与提示音偏好。 */
+  prefs.theme = "dark";
+  document.documentElement.dataset.theme = "dark";
   const sound_icon = find("#sound-icon");
   if (sound_icon) {
     sound_icon.setAttribute(
@@ -612,7 +600,7 @@ function toggle_zen_mode() {
 }
 
 /* =========================================================
- * 流光粒子引擎 & 交互聚光灯系统 (Luminous Chrono-Botanical FX)
+ * 界面事件绑定
  * ========================================================= */
 find_all(".add-trigger").forEach((button) => {
   button.addEventListener("click", () => open_task_dialog());
@@ -650,17 +638,6 @@ find("#confirm-accept")?.addEventListener("click", () => {
   confirm_callback = null;
   find("#confirm-dialog").close();
   if (typeof callback === "function") callback();
-});
-
-find("#theme-toggle")?.addEventListener("click", () => {
-  prefs.theme = prefs.theme === "dark" ? "light" : "dark";
-  apply_prefs();
-  save_prefs();
-  show_toast(
-    prefs.theme === "dark"
-      ? "已切换至曜石黑主题。"
-      : "已切换至深海蓝主题。",
-  );
 });
 
 find("#sound-button")?.addEventListener("click", () => {
@@ -926,7 +903,7 @@ const cloud = create_cloud({
     account_ready = false;
     document.body.classList.remove("is-focusing");
     state = create_state();
-    prefs = { theme: "light", sound: true };
+    prefs = { theme: "dark", sound: true };
     last_signature = "";
     current_filter = "all";
     find("#task-list").replaceChildren();

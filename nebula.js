@@ -125,23 +125,19 @@ const composite_fragment = `
 
 
 export function create_nebula() {
-  /** 创建 GPU 星云及真实遥测，WebGL 失败时保留静态背景。
+  /** 创建自适应 GPU 星云，WebGL 失败时保留静态背景。
    *
    * Returns:
    *   含 burst() 的视觉控制器，不访问或修改学习数据。
    */
   const canvas = document.querySelector("#ambient-canvas");
-  const fps_label = document.querySelector("#render-fps");
-  const count_label = document.querySelector("#particle-count");
-  const state_label = document.querySelector("#render-state");
-  const toggle = document.querySelector("#motion-toggle");
-  const coordinates = document.querySelector("#space-coordinates");
   const reduced_motion = matchMedia("(prefers-reduced-motion: reduce)");
   const small_screen = matchMedia("(max-width: 760px)");
   const coarse_pointer = matchMedia("(pointer: coarse)");
   const initial_count = small_screen.matches ? 48000 : 200000;
   let particle_count = initial_count;
   let paused = reduced_motion.matches;
+  document.body.classList.toggle("motion-paused", paused);
   let lost = false;
   let failed = false;
   let frame_id = 0;
@@ -182,16 +178,10 @@ export function create_nebula() {
   }
 
   function fallback() {
-    /** 显示明确的降级状态，不让装饰层阻断账号和任务界面。 */
+    /** 降级为静态背景，不让装饰层阻断账号和任务界面。 */
     failed = true;
     cancelAnimationFrame(frame_id);
     canvas.hidden = true;
-    state_label.textContent = "STATIC FIELD";
-    fps_label.textContent = "—";
-    count_label.textContent = "—";
-    toggle.textContent = "静态背景";
-    toggle.setAttribute("aria-label", "WebGL 不可用，已显示静态背景");
-    toggle.disabled = true;
     if (gl && !gl.isContextLost()) {
       release_targets();
       programs.forEach((program) => gl.deleteProgram(program));
@@ -302,7 +292,6 @@ export function create_nebula() {
         const height = Math.max(1, Math.floor(canvas.height / 4));
         create_target(width, height);
         create_target(width, height);
-        update_status();
         if (paused) draw();
       } catch {
         fallback();
@@ -373,18 +362,6 @@ export function create_nebula() {
       gl.disableVertexAttribArray(composite.position);
     }
 
-    function update_status() {
-      /** HUD 使用真实绘制数量，并区分动态、暂停与上下文丢失。 */
-      state_label.textContent = lost ? "GPU OFFLINE" :
-        paused ? "FIELD PAUSED" : "FIELD ACTIVE";
-      count_label.textContent = particle_count.toLocaleString("en-US");
-      toggle.textContent = paused ? "▷ 开启动态" : "Ⅱ 暂停动态";
-      toggle.setAttribute("aria-pressed", String(paused));
-      toggle.setAttribute("aria-label", paused ? "开启粒子动画" : "暂停粒子动画");
-      document.body.classList.toggle("motion-paused", paused);
-      if (paused || lost) fps_label.textContent = "—";
-    }
-
     function frame(now) {
       /** 以墙钟计算动画和 FPS，低帧率持续出现时递减实际粒子数量。 */
       frame_id = 0;
@@ -409,15 +386,11 @@ export function create_nebula() {
       if (!sample_start) sample_start = now;
       if (now - sample_start >= 1200) {
         const fps = Math.round(frame_count * 1000 / (now - sample_start));
-        fps_label.textContent = String(fps);
         slow_samples = fps < 30 ? slow_samples + 1 : 0;
         if (slow_samples >= 3 && particle_count > 24000) {
           particle_count = Math.max(24000, Math.floor(particle_count * 0.65));
-          update_status();
           slow_samples = 0;
         }
-        coordinates.textContent =
-          `${pointer.x.toFixed(2)} / ${pointer.y.toFixed(2)}`;
         frame_count = 0;
         sample_start = now;
       }
@@ -435,14 +408,9 @@ export function create_nebula() {
       }
     }
 
-    toggle.addEventListener("click", () => {
-      paused = !paused;
-      update_status();
-      resume();
-    });
     reduced_motion.addEventListener("change", () => {
       paused = reduced_motion.matches;
-      update_status();
+      document.body.classList.toggle("motion-paused", paused);
       resume();
     });
     document.addEventListener("visibilitychange", resume);
@@ -468,8 +436,6 @@ export function create_nebula() {
       lost = true;
       cancelAnimationFrame(frame_id);
       canvas.hidden = true;
-      update_status();
-      toggle.disabled = true;
     });
     canvas.addEventListener("webglcontextrestored", () => {
       // 上下文恢复后旧资源无效，保持静态降级而不干扰正在进行的学习。
@@ -479,10 +445,7 @@ export function create_nebula() {
       document.body, { attributes: true, attributeFilter: ["data-account"] },
     );
     resize();
-    if (!failed) {
-      update_status();
-      if (!paused) resume();
-    }
+    if (!failed && !paused) resume();
   } catch (error) {
     console.warn("粒子背景已降级为静态模式：", error.message);
     fallback();

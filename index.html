@@ -1,12 +1,12 @@
 <!doctype html>
-<html lang="zh-CN" data-theme="light">
+<html lang="zh-CN" data-theme="dark">
   <head>
     <meta charset="UTF-8" />
     <meta
       name="viewport"
       content="width=device-width, initial-scale=1, viewport-fit=cover"
     />
-    <meta name="theme-color" content="#070d18" id="theme-color-meta" />
+    <meta name="theme-color" content="#03060d" id="theme-color-meta" />
     <meta
       name="description"
       content="拾光，每天留一点时间给成长。安排学习计划，开启专注计时。"
@@ -33,19 +33,6 @@
 
     <a class="skip-link auth-skip" href="#auth-username">跳到账号登录</a>
     <a class="skip-link workspace-skip" href="#main-content">跳到学习内容</a>
-    <div class="space-hud" aria-label="粒子渲染状态">
-      <div class="hud-cell"><span class="signal-dot"></span>
-        <span id="render-state">INITIALIZING</span></div>
-      <div class="hud-cell"><span class="hud-label">FPS</span>
-        <output id="render-fps" aria-live="off">—</output></div>
-      <div class="hud-cell"><span class="hud-label">PARTICLES</span>
-        <output id="particle-count" aria-live="off">—</output></div>
-      <div class="hud-cell hud-coordinates">
-        <span class="hud-label">X / Y</span>
-        <output id="space-coordinates" aria-live="off">0.00 / 0.00</output></div>
-      <button id="motion-toggle" type="button" aria-pressed="false"
-        aria-label="暂停粒子动画">Ⅱ 暂停动态</button>
-    </div>
     <div class="scroll-rail" aria-hidden="true">
       <span id="scroll-progress"></span>
     </div>
@@ -269,7 +256,7 @@
           <strong id="breadcrumb-current">今日计划</strong>
         </div>
         <div class="topbar-right">
-          <button id="account-button" class="theme-toggle-btn"
+          <button id="account-button" class="account-button"
             type="button" aria-label="个人资料与账号设置">
             <span id="account-name">个人资料</span>
           </button>
@@ -277,16 +264,6 @@
             <svg class="icon"><use href="#icon-calendar" /></svg>
             <span id="date-label"></span>
           </div>
-          <button
-            class="theme-toggle-btn"
-            id="theme-toggle"
-            type="button"
-            aria-label="切换深海蓝或曜石黑主题"
-            title="切换深海蓝/曜石黑主题"
-          >
-            <svg class="icon"><use id="theme-icon" href="#icon-moon" /></svg>
-            <span id="theme-label">曜石黑</span>
-          </button>
         </div>
       </header>
 

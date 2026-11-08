@@ -2,15 +2,15 @@
 :root,
 html[data-theme="dark"] {
   color-scheme: dark;
-  --background: #070d18;
-  --background-subtle: #0b1424;
-  --paper: rgba(11, 19, 34, 0.76);
-  --paper-elevated: #101c2d;
+  --background: #03060d;
+  --background-subtle: #0b101b;
+  --paper: rgba(8, 13, 23, 0.8);
+  --paper-elevated: #101625;
   --glass-surface: rgba(10, 18, 32, 0.68);
-  --glass-surface-strong: rgba(11, 20, 35, 0.9);
+  --glass-surface-strong: rgba(8, 13, 23, 0.92);
   --glass-border: rgba(155, 197, 242, 0.16);
   --specular-top: rgba(192, 220, 255, 0.08);
-  --sidebar-bg: rgba(7, 13, 24, 0.86);
+  --sidebar-bg: rgba(4, 8, 16, 0.9);
   --ink: #f0f5fc;
   --ink-secondary: #b9c7da;
   --muted: #8d9eb5;
@@ -36,15 +36,6 @@ html[data-theme="dark"] {
   --orb-3: rgba(59, 136, 165, 0.13);
   --mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
   font-family: "Helvetica Neue", Arial, "PingFang SC", sans-serif;
-}
-
-html[data-theme="dark"] {
-  --background: #03060d;
-  --background-subtle: #0b101b;
-  --paper: rgba(8, 13, 23, 0.8);
-  --paper-elevated: #101625;
-  --glass-surface-strong: rgba(8, 13, 23, 0.92);
-  --sidebar-bg: rgba(4, 8, 16, 0.9);
 }
 
 html {
@@ -172,7 +163,7 @@ body:not([data-account="ready"]) .workspace-skip {
 .auth-screen {
   max-width: 1920px;
   margin: auto;
-  padding: 144px 5vw 160px;
+  padding: 144px 5vw 110px;
   grid-template-columns: minmax(0, 1fr) 380px;
   gap: 6vw;
   align-items: center;
@@ -194,8 +185,7 @@ body:not([data-account="ready"]) .workspace-skip {
   margin: 0 0 40px;
 }
 
-.space-kicker > span,
-.signal-dot {
+.space-kicker > span {
   width: 5px;
   height: 5px;
   flex-shrink: 0;
@@ -357,7 +347,7 @@ textarea::placeholder {
 
 .button,
 .icon-button,
-.theme-toggle-btn,
+.account-button,
 .filter,
 .duration-presets button {
   border-radius: 4px;
@@ -409,7 +399,7 @@ html[data-theme="dark"] .button.primary {
 
 .portal-footnote {
   position: absolute;
-  bottom: 102px;
+  bottom: 38px;
   left: 5vw;
   right: 5vw;
   display: flex;
@@ -418,71 +408,6 @@ html[data-theme="dark"] .button.primary {
   border-top: 1px solid var(--line);
   color: #8d9eb5;
   font-size: 9px;
-}
-
-.space-hud {
-  position: fixed;
-  z-index: 12;
-  bottom: max(20px, env(safe-area-inset-bottom));
-  left: 5vw;
-  display: flex;
-  align-items: center;
-  gap: 0;
-  max-width: calc(100vw - 36px);
-  border: 1px solid #b0d5ff26;
-  border-radius: 3px;
-  background: #08111ee8;
-  box-shadow: 0 8px 32px #0003;
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
-  font: 9px var(--mono);
-  letter-spacing: 0.7px;
-  color: #c9d8ec;
-}
-
-.hud-cell {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 14px 16px;
-  border-right: 1px solid var(--line);
-  white-space: nowrap;
-}
-
-.hud-label {
-  color: #8196b2;
-  font-size: 8px;
-}
-
-#render-fps {
-  min-width: 18px;
-}
-
-#particle-count {
-  min-width: 42px;
-}
-
-#space-coordinates {
-  min-width: 90px;
-}
-
-#motion-toggle {
-  border: 0;
-  padding: 13px 16px;
-  min-height: 42px;
-  background: transparent;
-  color: #b6d9ed;
-  font-size: 10px;
-  white-space: nowrap;
-}
-
-#motion-toggle:hover {
-  background: #91ddff12;
-}
-
-.motion-paused .signal-dot {
-  box-shadow: none;
-  background: #8d9eb5;
 }
 
 .scroll-rail {
@@ -587,12 +512,8 @@ footer i {
 
 main {
   margin-left: 210px;
-  padding: 0 40px 80px;
+  padding: 0 40px 32px;
   max-width: 1600px;
-}
-
-body[data-account="ready"] .space-hud {
-  left: 250px;
 }
 
 .topbar {
@@ -600,7 +521,7 @@ body[data-account="ready"] .space-hud {
   min-height: 80px;
 }
 
-.theme-toggle-btn {
+.account-button {
   font-size: 11px;
   background: #0b1626aa;
   border-color: var(--line);
@@ -1000,11 +921,7 @@ html[data-theme="dark"] .toast {
   color: #d8eafa;
   border: 1px solid #9acfff33;
   border-radius: 4px;
-  bottom: 86px;
-}
-
-body.zen-mode .space-hud {
-  left: 28px;
+  bottom: 24px;
 }
 
 /* 小屏保留完整表单和操作区，不把 WebGL 当成内容的前提。 */
@@ -1036,11 +953,7 @@ body.zen-mode .space-hud {
 
   main {
     margin-left: 176px;
-    padding: 0 24px 80px;
-  }
-
-  body[data-account="ready"] .space-hud {
-    left: 200px;
+    padding: 0 24px 32px;
   }
 
   .workspace-grid {
@@ -1059,9 +972,6 @@ body.zen-mode .space-hud {
 }
 
 @media (max-width: 960px) {
-  .hud-coordinates {
-    display: none;
-  }
 
   .portal-story h2 {
     font-size: 62px;
@@ -1094,10 +1004,6 @@ body.zen-mode .space-hud {
   main {
     margin-left: 76px;
   }
-
-  body[data-account="ready"] .space-hud {
-    left: 100px;
-  }
 }
 
 @media (max-width: 760px) {
@@ -1122,7 +1028,7 @@ body.zen-mode .space-hud {
   }
 
   .auth-screen {
-    padding: 118px 24px 130px;
+    padding: 118px 24px 48px;
     grid-template-columns: minmax(0, 1fr);
     gap: 48px;
   }
@@ -1175,30 +1081,6 @@ body.zen-mode .space-hud {
     font-size: 16px;
   }
 
-  .space-hud,
-  body[data-account="ready"] .space-hud,
-  body.zen-mode .space-hud {
-    left: 16px;
-    bottom: max(12px, env(safe-area-inset-bottom));
-    width: calc(100% - 32px);
-    max-width: 460px;
-    justify-content: space-between;
-    font-size: 8px;
-  }
-
-  .hud-cell {
-    padding: 12px 9px;
-    gap: 6px;
-  }
-
-  .hud-cell:first-child {
-    display: none;
-  }
-
-  #motion-toggle {
-    padding: 12px;
-  }
-
   .scroll-rail {
     right: 6px;
   }
@@ -1222,7 +1104,7 @@ body.zen-mode .space-hud {
 
   main {
     margin-left: 0;
-    padding: 0 16px 70px;
+    padding: 0 16px 24px;
   }
 
   .topbar {
@@ -1299,7 +1181,7 @@ body.zen-mode .space-hud {
   }
 
   .toast {
-    bottom: 76px;
+    bottom: 24px;
   }
 }
 

@@ -61,7 +61,13 @@ test("默认监听所有 IPv4 接口并只提供白名单静态文件", async (c
   const base_url = `http://127.0.0.1:${port}`;
   const response = await fetch(base_url);
   assert.equal(response.status, 200);
-  assert.match(await response.text(), /viewport-fit=cover/);
+  const html = await response.text();
+  assert.match(html, /viewport-fit=cover/);
+  assert.match(html, /<html[^>]+data-theme="dark"/);
+  assert.match(html, /name="theme-color" content="#03060d"/);
+  assert.doesNotMatch(html, /space-hud|theme-toggle|motion-toggle/);
+  assert.match(html, /id="ambient-canvas"/);
+  assert.match(html, /id="account-button"/);
   const css_response = await fetch(`${base_url}/styles.css`);
   assert.match(css_response.headers.get("content-type"), /text\/css/);
   await css_response.text();

@@ -338,7 +338,7 @@ export function create_cloud({ on_load, on_lock, notify }) {
     const workspace = {
       state: clean_state,
       prefs: {
-        theme: legacy_prefs?.theme === "dark" ? "dark" : "light",
+        theme: "dark",
         sound: legacy_prefs?.sound !== false,
       },
     };

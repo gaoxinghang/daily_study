@@ -193,7 +193,7 @@ async function login(request, response, body, config, registering) {
       const encoded = await hash_password(body.password);
       const workspace = {
         state: create_state(),
-        prefs: { theme: "light", sound: true },
+        prefs: { theme: "dark", sound: true },
       };
       result = await pool.query(
         `INSERT INTO study_users
