@@ -5,4 +5,4 @@ Wants=network-online.target
 
 [Service]
 Type=oneshot
-ExecStart=/opt/certbot/bin/certbot renew --quiet
+ExecStart=/opt/certbot/bin/certbot renew --cert-name 1.12.67.229 --quiet

@@ -138,9 +138,10 @@ TEST_DATABASE=1 npm test
   不需要在应用环境中保存数据库密码；5432 不监听公网。
 - Nginx：`/etc/nginx/conf.d/daily_study.conf`，反向代理 Node.js，
   禁止隐藏路径访问；其他非公开文件由静态白名单阻止。
+- 应用来源：`PUBLIC_ORIGIN=https://1.12.67.229`，保留 Secure cookie。
 - HTTPS：Let's Encrypt 的 IP 短期证书，约 6 天有效。
   `daily-study-cert-renew.timer` 每天检查两次，
-  续期成功后自动检查并重载 Nginx。
+  仅续期证书 `1.12.67.229`，续期成功后自动检查并重载 Nginx。
 - 数据库备份：`daily-study-backup.timer` 每天 03:00 执行，
   保存于 `/var/backups/daily-study-db`，保留约 14 天。
   这些是同机备份，不能替代异地备份。
